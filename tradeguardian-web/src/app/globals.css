@@ -1,0 +1,361 @@
+/* MUI's styles sit between Tailwind's base and utilities, so utility classes
+   override MUI components without !important. */
+@layer theme, base, mui, components, utilities;
+@import "tailwindcss";
+
+/*
+ * Design tokens. The UI is dark-only, regardless of the system theme.
+ */
+:root {
+  color-scheme: dark;
+
+  --background: #111316;
+  --surface: #15181c;
+  --surface-menu: #0c0d0f;
+  --input: #171a1f;
+  --foreground: #ffffff;
+  --muted: #b5bdc2;
+  --border: #2b2e36;
+  --border-footer: #293139;
+
+  --accent: #00c3ff;
+  --on-accent: #0c0c0f;
+
+  --turquoise: #22e1c9;
+  --blue: #1975ff;
+  --gold: #e8b810;
+  --orange: #eb9b21;
+  --green: #00b093;
+  --danger: #ff5c5c;
+
+  --tint-cyan: rgba(0, 195, 255, 0.06);
+  --tint-turquoise: rgba(0, 225, 201, 0.06);
+  --tint-blue: rgba(0, 102, 255, 0.08);
+  --tint-gold: rgba(240, 208, 3, 0.04);
+  --tint-green: rgba(0, 176, 147, 0.06);
+
+  --header-height: 5rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-menu: var(--surface-menu);
+  --color-input: var(--input);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-border-footer: var(--border-footer);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-turquoise: var(--turquoise);
+  --color-blue: var(--blue);
+  --color-gold: var(--gold);
+  --color-orange: var(--orange);
+  --color-green: var(--green);
+  --color-danger: var(--danger);
+  --color-tint-cyan: var(--tint-cyan);
+  --color-tint-turquoise: var(--tint-turquoise);
+  --color-tint-blue: var(--tint-blue);
+  --color-tint-gold: var(--tint-gold);
+  --color-tint-green: var(--tint-green);
+
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-heading: var(--font-rigid-square), var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+@layer base {
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+}
+
+/*
+ * Type scale. Mobile values apply up to 480px; desktop values from 481px,
+ * except the hero which has an extra step at 1024px.
+ */
+/*
+ * Decorative dot grid for large marketing backdrops; keep off data surfaces.
+ * 1.19px dots on a 16.695px pitch at 20% white, in a 1440x847 repeating tile.
+ * Real SVG circles (not a gradient or <pattern>) keep sub-pixel dots crisp.
+ */
+@utility bg-dot-grid {
+  background-image: url("/images/dot-grid.svg");
+  background-repeat: repeat;
+}
+
+/*
+ * Fades an element out over its last ~250px, easing like Blockstream's dot
+ * grid (one stop per 16.695px dot row).
+ */
+@utility fade-out-bottom {
+  mask-image: linear-gradient(
+    to bottom,
+    rgb(0 0 0 / 1) calc(100% - 250.4px),
+    rgb(0 0 0 / 0.9) calc(100% - 233.7px),
+    rgb(0 0 0 / 0.8) calc(100% - 217px),
+    rgb(0 0 0 / 0.7) calc(100% - 200.3px),
+    rgb(0 0 0 / 0.6) calc(100% - 183.6px),
+    rgb(0 0 0 / 0.54) calc(100% - 167px),
+    rgb(0 0 0 / 0.46) calc(100% - 150.3px),
+    rgb(0 0 0 / 0.38) calc(100% - 133.6px),
+    rgb(0 0 0 / 0.3) calc(100% - 116.9px),
+    rgb(0 0 0 / 0.23) calc(100% - 100.2px),
+    rgb(0 0 0 / 0.17) calc(100% - 83.5px),
+    rgb(0 0 0 / 0.13) calc(100% - 66.8px),
+    rgb(0 0 0 / 0.1) calc(100% - 50.1px),
+    rgb(0 0 0 / 0.08) calc(100% - 33.4px),
+    rgb(0 0 0 / 0.05) calc(100% - 16.7px),
+    rgb(0 0 0 / 0) 100%
+  );
+}
+
+/* Soft cyan glow; size and position the element to place it. */
+@utility bg-glow-cyan {
+  background-image: radial-gradient(
+    50% 50% at 50% 50%,
+    rgb(0 195 255 / 0.2) 0%,
+    rgb(0 195 255 / 0) 100%
+  );
+}
+
+@utility type-hero {
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: normal;
+  text-transform: uppercase;
+  @media (min-width: 481px) {
+    font-size: 3rem;
+    font-weight: 800;
+  }
+  @media (min-width: 1024px) {
+    font-size: 3.375rem;
+    line-height: 3.75rem;
+  }
+}
+
+@utility type-h1 {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: normal;
+  @media (min-width: 481px) {
+    font-size: 2.5rem;
+  }
+}
+
+@utility type-h2 {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: normal;
+  @media (min-width: 481px) {
+    font-size: 1.75rem;
+  }
+}
+
+@utility type-h3 {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: normal;
+  @media (min-width: 481px) {
+    font-size: 1.25rem;
+  }
+}
+
+@utility type-eyebrow {
+  font-family: var(--font-heading);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: normal;
+  text-transform: uppercase;
+  @media (min-width: 481px) {
+    font-size: 1rem;
+  }
+}
+
+@utility type-nav {
+  font-family: var(--font-heading);
+  font-size: 1.03125rem;
+  font-weight: 700;
+  line-height: normal;
+  @media (min-width: 481px) {
+    font-weight: 600;
+  }
+}
+
+@utility type-body-lg {
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5625rem;
+  @media (min-width: 481px) {
+    font-size: 1.125rem;
+  }
+}
+
+@utility type-body {
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.5rem;
+  @media (min-width: 481px) {
+    font-size: 1rem;
+    line-height: 1.5625rem;
+  }
+}
+
+@utility type-small {
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.125rem;
+  @media (min-width: 481px) {
+    font-size: 0.875rem;
+    line-height: 1.375rem;
+  }
+}
+
+@layer components {
+  /* Buttons: add .btn plus a variant; .btn-lg for prominent CTAs. */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding: 0.625rem 1.25rem;
+    border: 1px solid transparent;
+    border-radius: 0.25rem;
+    font-family: var(--font-heading);
+    font-size: 0.9375rem;
+    font-weight: 700;
+    line-height: 1.375rem;
+    white-space: nowrap;
+    transition:
+      background-color 150ms ease,
+      color 150ms ease,
+      border-color 150ms ease;
+
+    &:disabled,
+    &[aria-disabled="true"] {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    &[aria-busy="true"] {
+      cursor: progress;
+      &::before {
+        content: "";
+        width: 1em;
+        height: 1em;
+        border: 2px solid currentColor;
+        border-right-color: transparent;
+        border-radius: 9999px;
+        animation: btn-spin 0.8s linear infinite;
+      }
+    }
+  }
+
+  .btn-lg {
+    min-height: 3rem;
+    padding: 0.75rem 1.75rem;
+    font-size: 0.875rem;
+    @media (min-width: 481px) {
+      font-size: 1.125rem;
+    }
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: var(--on-accent);
+    &:hover {
+      background: var(--foreground);
+      color: var(--on-accent);
+    }
+  }
+
+  .btn-secondary {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--foreground);
+    &:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+  }
+
+  .btn-destructive {
+    background: var(--danger);
+    color: #ffffff;
+    &:hover {
+      filter: brightness(1.1);
+    }
+  }
+
+  /* Text inputs and textareas. */
+  .field {
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.625rem 0.875rem;
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: 0.25rem;
+    color: var(--muted);
+    font-size: 1rem;
+    line-height: 1.5rem;
+    transition: border-color 150ms ease;
+
+    &::placeholder {
+      color: var(--muted);
+    }
+
+    /* No focus highlight by design; the text cursor marks the active field. */
+    &:focus-visible {
+      outline: none;
+    }
+
+    &[aria-invalid="true"] {
+      border-color: var(--danger);
+    }
+  }
+
+  textarea.field {
+    resize: vertical;
+  }
+
+  /* Neutral data/content surface. */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+  }
+}
+
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
