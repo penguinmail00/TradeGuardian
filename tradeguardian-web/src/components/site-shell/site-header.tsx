@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 
 type NavItem = {
   label: string;
@@ -16,7 +17,8 @@ const navItems: NavItem[] = [
  * Full-width header laid out like blockstream.com: at desktop widths a
  * 1fr / 5fr grid inside 100px side padding puts the app name on the left
  * (indented a further 20px) and the tabs right-aligned. Below 1090px the
- * tabs move into a no-JS disclosure menu.
+ * tabs move into a no-JS disclosure menu. The wallet button stays visible at
+ * every width.
  *
  * Positioned absolutely so it overlays the page's first section; pages
  * offset their content with `pt-(--header-height)`.
@@ -31,21 +33,27 @@ export function SiteHeader() {
         >
           TradeGuardian
         </Link>
-        <nav aria-label="Primary" className="hidden h-full min-[1090px]:block">
-          <ul className="flex h-full items-center justify-end">
-            {navItems.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className="type-nav relative block px-[15px] py-2 text-foreground after:absolute after:inset-x-[15px] after:bottom-0 after:h-0.5 after:origin-left after:scale-x-0 after:bg-accent after:transition-transform after:duration-300 hover:after:scale-x-100"
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-        <MobileNav />
+        <div className="flex h-full items-center justify-end gap-2 min-[1090px]:gap-5">
+          <nav
+            aria-label="Primary"
+            className="hidden h-full min-[1090px]:block"
+          >
+            <ul className="flex h-full items-center">
+              {navItems.map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className="type-nav relative block px-[15px] py-2 text-foreground after:absolute after:inset-x-[15px] after:bottom-0 after:h-0.5 after:origin-left after:scale-x-0 after:bg-accent after:transition-transform after:duration-300 hover:after:scale-x-100"
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+          <ConnectWalletButton />
+          <MobileNav />
+        </div>
       </div>
     </header>
   );

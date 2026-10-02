@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
+import { Web3Provider } from "@/components/providers/web3-provider";
 
 // Variable font: covers the 400–800 weights used, so no synthetic bold.
 const inter = Inter({
@@ -55,7 +56,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {/* Emits MUI's styles during SSR, inside @layer mui so Tailwind
             utilities can override them. */}
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>
-          {children}
+          <Web3Provider>{children}</Web3Provider>
         </AppRouterCacheProvider>
       </body>
     </html>
