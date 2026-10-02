@@ -2,8 +2,9 @@
 pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
-contract Escrow is ReentrancyGuard {
+contract Escrow is Initializable, ReentrancyGuard {
     // The buyer deposits 2x the item price
     uint256 private constant BUYER_DEPOSIT_MULTIPLIER = 2;
 
@@ -22,8 +23,8 @@ contract Escrow is ReentrancyGuard {
     uint256 public itemPrice;
     uint256 public contractCreationDate;
     uint256 public deadlineForInitialDeposits;
-    bool private hasSellerSettled = false;
-    bool private hasBuyerSettled = false;
+    bool private hasSellerSettled;
+    bool private hasBuyerSettled;
 
     enum EscrowState {
         AWAITING_DEPOSIT,
@@ -35,7 +36,7 @@ contract Escrow is ReentrancyGuard {
         TRADE_CANCELED
     }
 
-    EscrowState public currentState = EscrowState.AWAITING_DEPOSIT;
+    EscrowState public currentState;
 
     event SellerDeposited(address indexed seller, uint256 amount);
     event BuyerDeposited(address indexed buyer, uint256 amount);
@@ -63,12 +64,23 @@ contract Escrow is ReentrancyGuard {
 
     event TradeCanceled(address indexed user, uint256 amount);
 
-    constructor(
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(
         address _feeRecipient,
         address _seller,
         address _buyer,
         uint256 _itemPrice
-    ) {
+    ) external initializer {
+        require(
+            _seller != address(0) && _buyer != address(0),
+            "Seller and buyer cannot be the zero address"
+        );
+        require(_seller != _buyer, "Seller and buyer must be different");
+
         feeRecipient = _feeRecipient;
         seller = _seller;
         buyer = _buyer;

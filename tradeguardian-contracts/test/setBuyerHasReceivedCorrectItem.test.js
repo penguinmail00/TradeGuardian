@@ -2,6 +2,7 @@ const { expect } = require("chai");
 const {
     loadFixture,
     deployEscrow,
+    deployEscrowWithPrice,
     BUYER_DEPOSIT_MULTIPLIER,
     FEE_PERCENTAGE,
     EscrowStates
@@ -133,11 +134,9 @@ describe("Set buyer has correct item", function () {
     });
 
     it("Should complete and pay out the full balance when the fee is odd", async function () {
-        const [feeRecipient, seller, buyer] = await ethers.getSigners();
         // 1% of 300 wei is 3 wei, which cannot be split evenly between the two parties
         const itemPrice = 300n;
-        const Escrow = await ethers.getContractFactory("Escrow");
-        const escrow = await Escrow.deploy(feeRecipient.address, seller.address, buyer.address, itemPrice);
+        const { escrow, feeRecipient, seller, buyer } = await deployEscrowWithPrice(itemPrice);
 
         await escrow.connect(buyer).buyerDeposit({ value: itemPrice * BUYER_DEPOSIT_MULTIPLIER });
         await escrow.connect(seller).sellerDeposit({ value: itemPrice });
@@ -166,9 +165,7 @@ describe("Set buyer has correct item", function () {
         ];
 
         async function deployAndShipItem(itemPrice) {
-            const [feeRecipient, seller, buyer] = await ethers.getSigners();
-            const Escrow = await ethers.getContractFactory("Escrow");
-            const escrow = await Escrow.deploy(feeRecipient.address, seller.address, buyer.address, itemPrice);
+            const { escrow, feeRecipient, seller, buyer } = await deployEscrowWithPrice(itemPrice);
 
             await escrow.connect(buyer).buyerDeposit({ value: itemPrice * BUYER_DEPOSIT_MULTIPLIER });
             await escrow.connect(seller).sellerDeposit({ value: itemPrice });

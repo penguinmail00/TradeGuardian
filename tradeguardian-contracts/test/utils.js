@@ -17,14 +17,39 @@ const EscrowStates = {
     CANCELED: 6
 };
 
-async function deployEscrow() {
-    const itemPrice = ethers.parseEther("1");
+async function deployFactory() {
+    const [feeRecipient] = await ethers.getSigners();
+
+    const implementation = await ethers.deployContract("Escrow");
+    const factory = await ethers.deployContract("EscrowFactory", [
+        await implementation.getAddress(),
+        feeRecipient.address
+    ]);
+
+    return { factory, implementation };
+}
+
+async function createEscrow(factory, seller, buyer, itemPrice) {
+    const tx = await factory.createEscrow(seller, buyer, itemPrice);
+    const receipt = await tx.wait();
+    const event = receipt.logs
+        .map((log) => factory.interface.parseLog(log))
+        .find((parsed) => parsed?.name === "EscrowCreated");
+
+    return ethers.getContractAt("Escrow", event.args.escrow);
+}
+
+async function deployEscrowWithPrice(itemPrice) {
     const [feeRecipient, seller, buyer, thirdParty] = await ethers.getSigners();
 
-    const Escrow = await ethers.getContractFactory("Escrow");
-    const escrow = await Escrow.deploy(feeRecipient.address, seller.address, buyer.address, itemPrice);
+    const { factory, implementation } = await deployFactory();
+    const escrow = await createEscrow(factory, seller.address, buyer.address, itemPrice);
 
-    return { escrow, feeRecipient, seller, buyer, thirdParty, itemPrice };
+    return { escrow, factory, implementation, feeRecipient, seller, buyer, thirdParty, itemPrice };
+}
+
+async function deployEscrow() {
+    return deployEscrowWithPrice(ethers.parseEther("1"));
 }
 
 module.exports = {
@@ -35,5 +60,8 @@ module.exports = {
     FEE_PERCENTAGE,
     EscrowStates,
     loadFixture,
+    deployFactory,
+    createEscrow,
+    deployEscrowWithPrice,
     deployEscrow
 };
