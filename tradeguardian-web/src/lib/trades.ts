@@ -46,15 +46,15 @@ export const tradeStatuses: Record<EscrowState, TradeStatus> = {
     className: "bg-tint-blue text-blue",
   },
   ITEM_SENT: {
-    label: "Item sent",
+    label: "Item delivered",
     description:
       "The seller has marked the item as delivered. Waiting for the buyer to confirm.",
     className: "bg-tint-purple text-purple",
   },
   ITEM_INCORRECT: {
-    label: "Wrong item reported",
+    label: "Incorrect or no item",
     description:
-      "The buyer reported receiving the wrong item, so both deposits stay locked.",
+      "The buyer reported receiving the wrong item, or no item at all, so both deposits stay locked.",
     className: "bg-danger/10 text-danger",
   },
   // The contract's success state: confirming the item pays out the escrow,

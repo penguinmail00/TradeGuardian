@@ -55,10 +55,7 @@ export default async function TradePage({ params }: PageProps<"/trades/[address]
             >
               ← My trades
             </Link>
-            <p className="type-eyebrow mt-8 text-accent">
-              {isSeller ? "Selling" : "Buying"}
-            </p>
-            <div className="mt-3 flex flex-wrap items-center gap-4">
+            <div className="mt-8 flex flex-wrap items-center gap-4">
               <h1 className="type-h1">Transaction Details</h1>
               <TradeStatusBadge state={trade.state} />
             </div>
