@@ -6,44 +6,21 @@ import { CopyButton } from "@/components/trades/copy-button";
 import { formatAge, formatTimestamp, type TimestampFormat } from "@/lib/time";
 
 /*
- * Times are shown the way Etherscan does: an age ("2 days 3 hrs ago") that
- * ticks while the page is open, and a timestamp in UTC, the viewer's local
- * time, or Unix seconds.
+ * Times are shown the way Etherscan does: an age ("2 days 3 hrs ago") and a
+ * timestamp in UTC, the viewer's local time, or Unix seconds. Like Etherscan,
+ * ages are as of the page request and don't update while the page is open.
  *
- * The server knows neither the viewer's clock nor their time zone, so it
- * renders from `serverNow` and shows local times as UTC. During hydration the
- * clock store reports its server value, so the first client render matches
- * the server; React then re-renders with the live clock and local time.
+ * The server doesn't know the viewer's time zone, so it shows local times as
+ * UTC; after hydration React re-renders once with the viewer's local time.
  */
 
-// --- Shared clock: one interval for every time on the page. ---------------
-
-let now: number | null = null;
-const clockListeners = new Set<() => void>();
-let clockTimer: ReturnType<typeof setInterval> | undefined;
-
-function subscribeToClock(listener: () => void) {
-  clockListeners.add(listener);
-  if (clockListeners.size === 1) {
-    clockTimer = setInterval(() => {
-      now = Date.now();
-      clockListeners.forEach((notify) => notify());
-    }, 1000);
-  }
-  return () => {
-    clockListeners.delete(listener);
-    if (clockListeners.size === 0) clearInterval(clockTimer);
-  };
+function subscribeToNothing() {
+  return () => {};
 }
 
-function getClockSnapshot() {
-  now ??= Date.now();
-  return now;
-}
-
-/** Live time on the client; `null` on the server and during hydration. */
-function useClientNow() {
-  return useSyncExternalStore(subscribeToClock, getClockSnapshot, () => null);
+/** False on the server and during hydration, true after; never re-renders. */
+function useIsClient() {
+  return useSyncExternalStore(subscribeToNothing, () => true, () => false);
 }
 
 const timestampFormatLabels: Record<TimestampFormat, string> = {
@@ -57,18 +34,17 @@ const timestampFormatLabels: Record<TimestampFormat, string> = {
 type TimeProps = {
   /** ISO timestamp. */
   dateTime: string;
-  /** Request time on the server, so the server and first client render agree. */
+  /** Request time on the server; ages are measured from it. */
   serverNow: number;
   className?: string;
 };
 
-function useTimeParts({ dateTime, serverNow }: TimeProps, maxAgeUnits?: number) {
-  const clientNow = useClientNow();
+function useTimeParts({ dateTime, serverNow }: TimeProps) {
+  const isClient = useIsClient();
   const date = new Date(dateTime);
-  const isClient = clientNow !== null;
 
   return {
-    age: formatAge(date.getTime(), clientNow ?? serverNow, maxAgeUnits),
+    age: formatAge(date.getTime(), serverNow),
     /** Local time isn't knowable on the server, so it shows UTC until hydration. */
     timestamp: (format: TimestampFormat) =>
       formatTimestamp(date, format === "local" && !isClient ? "utc" : format),
@@ -87,13 +63,13 @@ export function TradeTimeCell(props: TimeProps) {
 }
 
 /**
- * Trade page, laid out like Etherscan: "🕒 34 days ago" then a button showing
+ * Trade page, laid out like Etherscan: "🕒 34 days 5 hrs ago" then a button showing
  * the timestamp in the chosen format. The button opens "Time Formats", which
  * lists UTC, Local, and Unix Timestamp, each with a copy button; picking one
  * makes it the button's format. Like Etherscan, every visit starts on UTC.
  */
 export function TradeTimestamp(props: TimeProps) {
-  const { age, timestamp } = useTimeParts(props, 1);
+  const { age, timestamp } = useTimeParts(props);
   const [format, setFormat] = useState<TimestampFormat>("utc");
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLSpanElement>(null);

@@ -69,7 +69,7 @@ export default async function MyTradesPage({ searchParams }: PageProps<"/trades"
   const unarchivedTrades = sortedTrades.filter((trade) => !isArchived(trade));
   const archivedTrades = sortedTrades.filter(isArchived);
   const shownTrades = params.view === "archived" ? archivedTrades : unarchivedTrades;
-  // Ages render from this until the browser's own clock takes over.
+  // Ages are measured from the request time.
   const serverNow = getRequestTime();
 
   return (

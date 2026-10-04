@@ -8,6 +8,20 @@ export const currentUser: Address = "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
 
 export const trades: Trade[] = [
   {
+    escrow: "0x64a996E6bA4326F849419625eeB49FF696De242B",
+    transactionHash: "0x6d41f1768455f549a58eca2e07889ff4ef75ee30bdf8c011f543578db7c874e3",
+    itemName: "Road bike (54cm frame)",
+    description:
+      "Carbon frame with a full 11-speed groupset. New tires and chain this summer; collection only.",
+    seller: "0x6297CBDA4aC80584C02CACC31669Ae8f844Aa8EA",
+    buyer: currentUser,
+    itemPrice: parseEther("0.8"),
+    state: "AWAITING_DEPOSIT",
+    hasSellerDeposited: false,
+    hasBuyerDeposited: false,
+    createdAt: new Date("2026-10-04T03:10:00Z"),
+  },
+  {
     escrow: "0x9d4454B023096f34B160D6B654540c56A1F81688",
     transactionHash: "0xc6abd3dcacfe9ed9173636b67c6edc8b06fe49cb1f24c00284cc5ad58bf82c28",
     itemName: "Vintage instant camera",
@@ -17,6 +31,8 @@ export const trades: Trade[] = [
     buyer: "0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2",
     itemPrice: parseEther("0.25"),
     state: "AWAITING_DEPOSIT",
+    hasSellerDeposited: true,
+    hasBuyerDeposited: false,
     createdAt: new Date("2026-10-02T18:24:00Z"),
   },
   {
@@ -29,6 +45,8 @@ export const trades: Trade[] = [
     buyer: currentUser,
     itemPrice: parseEther("1.2"),
     state: "ITEM_SENT",
+    hasSellerDeposited: true,
+    hasBuyerDeposited: true,
     createdAt: new Date("2026-09-30T09:12:00Z"),
   },
   {
@@ -41,6 +59,8 @@ export const trades: Trade[] = [
     buyer: "0x78731D3Ca6b7E34aC0F824c42a7cC18A495cabaB",
     itemPrice: parseEther("0.075"),
     state: "AWAITING_DELIVERY",
+    hasSellerDeposited: true,
+    hasBuyerDeposited: true,
     createdAt: new Date("2026-09-28T15:40:00Z"),
   },
   {
@@ -53,6 +73,8 @@ export const trades: Trade[] = [
     buyer: currentUser,
     itemPrice: parseEther("3"),
     state: "ITEM_INCORRECT",
+    hasSellerDeposited: true,
+    hasBuyerDeposited: true,
     createdAt: new Date("2026-09-21T11:05:00Z"),
   },
   {
@@ -65,6 +87,8 @@ export const trades: Trade[] = [
     buyer: "0x17F6AD8Ef982297579C203069C1DbfFE4348c372",
     itemPrice: parseEther("0.5"),
     state: "ITEM_RECEIVED",
+    hasSellerDeposited: true,
+    hasBuyerDeposited: true,
     createdAt: new Date("2026-09-14T20:30:00Z"),
   },
   {
@@ -77,6 +101,8 @@ export const trades: Trade[] = [
     buyer: currentUser,
     itemPrice: parseEther("0.6"),
     state: "SETTLED",
+    hasSellerDeposited: true,
+    hasBuyerDeposited: true,
     createdAt: new Date("2026-09-08T13:50:00Z"),
   },
   {
@@ -89,6 +115,8 @@ export const trades: Trade[] = [
     buyer: currentUser,
     itemPrice: parseEther("0.9"),
     state: "TRADE_CANCELED",
+    hasSellerDeposited: false,
+    hasBuyerDeposited: true,
     createdAt: new Date("2026-09-03T08:15:00Z"),
   },
 ];

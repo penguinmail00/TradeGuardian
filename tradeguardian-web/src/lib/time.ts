@@ -9,9 +9,11 @@ const units = [
 /**
  * Etherscan-style age using up to `maxUnits` of the largest units: "45 secs
  * ago", "3 hrs 12 mins ago", "2 days 3 hrs ago", or with one unit "34 days ago".
+ * Times still to come read "in 1 hr 20 mins".
  */
 export function formatAge(fromMs: number, nowMs: number, maxUnits = 2) {
-  let remaining = Math.max(0, Math.floor((nowMs - fromMs) / 1000));
+  const isFuture = fromMs > nowMs;
+  let remaining = Math.floor(Math.abs(nowMs - fromMs) / 1000);
   const parts: string[] = [];
 
   for (const unit of units) {
@@ -26,7 +28,7 @@ export function formatAge(fromMs: number, nowMs: number, maxUnits = 2) {
     if (parts.length === maxUnits) break;
   }
 
-  return `${parts.join(" ")} ago`;
+  return isFuture ? `in ${parts.join(" ")}` : `${parts.join(" ")} ago`;
 }
 
 /** The three timestamp formats in Etherscan's dropdown. */

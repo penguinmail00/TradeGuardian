@@ -22,6 +22,9 @@ export type Trade = {
   /** In wei. */
   itemPrice: bigint;
   state: EscrowState;
+  /** Whether each side has locked its deposit, from the escrow's `userBalances`. */
+  hasSellerDeposited: boolean;
+  hasBuyerDeposited: boolean;
   /** From the escrow's `contractCreationDate` (block timestamp, in seconds). */
   createdAt: Date;
 };
@@ -95,6 +98,45 @@ export function canArchive(trade: Trade) {
 /** Sellers deposit 1x the item price; buyers deposit 2x. */
 export function getDeposit(trade: Trade, isSeller: boolean) {
   return isSeller ? trade.itemPrice : trade.itemPrice * BigInt(2);
+}
+
+/**
+ * While the escrow is awaiting deposits, each side deposits once. True when
+ * it's this side's turn to deposit.
+ */
+export function needsDeposit(trade: Trade, isSeller: boolean) {
+  if (trade.state !== "AWAITING_DEPOSIT") return false;
+  return isSeller ? !trade.hasSellerDeposited : !trade.hasBuyerDeposited;
+}
+
+/** Mirrors `TWO_HOURS_IN_SECS` in `Escrow`. */
+const depositWindowMs = 2 * 60 * 60 * 1000;
+
+/**
+ * When the deposit window closes, like the escrow's
+ * `deadlineForInitialDeposits`: two hours after creation. After it, a side
+ * that deposited can withdraw and cancel the trade.
+ */
+export function getExpiration(trade: Trade) {
+  return new Date(trade.createdAt.getTime() + depositWindowMs);
+}
+
+/**
+ * True once the deposit window has closed with the trade still awaiting
+ * deposits. Later states don't expire: the deadline only applies to deposits.
+ */
+export function isExpired(trade: Trade, nowMs: number) {
+  return trade.state === "AWAITING_DEPOSIT" && nowMs >= getExpiration(trade).getTime();
+}
+
+/**
+ * Once the deposit window has expired with the trade still awaiting deposits,
+ * a side that deposited can cancel the trade and get its deposit back (the
+ * escrow's `withdraw`). A side with nothing deposited has nothing to withdraw.
+ */
+export function canCancel(trade: Trade, isSeller: boolean, nowMs: number) {
+  if (!isExpired(trade, nowMs)) return false;
+  return isSeller ? trade.hasSellerDeposited : trade.hasBuyerDeposited;
 }
 
 /** `0x5B38…ddC4`. Also used for transaction hashes. */

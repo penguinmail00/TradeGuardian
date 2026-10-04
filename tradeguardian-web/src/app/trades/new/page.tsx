@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { SiteFooter } from "@/components/site-shell/site-footer";
 import { SiteHeader } from "@/components/site-shell/site-header";
+import { BackToTradesLink } from "@/components/trades/back-to-trades-link";
 
 import { AddTradeForm } from "./add-trade-form";
 
@@ -21,7 +22,8 @@ export default function AddTradePage() {
       <main className="flex-1">
         <section className="pt-(--header-height)">
           <div className="mx-auto w-[calc(100%-60px)] max-w-[800px] pt-16 pb-16 lg:pt-24 lg:pb-24">
-            <h1 className="type-h1 text-balance">Add a trade</h1>
+            <BackToTradesLink />
+            <h1 className="type-h1 mt-8 text-balance">Add a trade</h1>
             <div className="mt-10">
               <AddTradeForm />
             </div>

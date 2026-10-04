@@ -1,5 +1,5 @@
 /**
- * The parts of `Escrow` in tradeguardian-contracts that the web app reads.
+ * The parts of `Escrow` in tradeguardian-contracts that the web app uses.
  * Add entries here as more of the contract is used.
  */
 export const escrowAbi = [
@@ -16,5 +16,26 @@ export const escrowAbi = [
     stateMutability: "view",
     inputs: [],
     outputs: [{ name: "", type: "address" }],
+  },
+  {
+    type: "function",
+    name: "sellerDeposit",
+    stateMutability: "payable",
+    inputs: [],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "buyerDeposit",
+    stateMutability: "payable",
+    inputs: [],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "withdraw",
+    stateMutability: "nonpayable",
+    inputs: [],
+    outputs: [],
   },
 ] as const;
