@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { SiteFooter } from "@/components/site-shell/site-footer";
 import { SiteHeader } from "@/components/site-shell/site-header";
 
+import { AddTradeForm } from "./add-trade-form";
+
 export const metadata: Metadata = {
   title: "Add a trade | TradeGuardian",
-  description: "Create a new escrow-protected trade.",
+  description: "Add an escrow-protected trade you are buying or selling.",
 };
 
 /**
- * Placeholder until the create-trade form (EscrowFactory.createEscrow) is
- * built. Rendered entirely on the server.
+ * Adds an existing escrow by its contract address. The form checks on-chain
+ * that the connected wallet is the escrow's buyer or seller.
  */
 export default function AddTradePage() {
   return (
@@ -20,14 +21,10 @@ export default function AddTradePage() {
       <main className="flex-1">
         <section className="pt-(--header-height)">
           <div className="mx-auto w-[calc(100%-60px)] max-w-[800px] pt-16 pb-16 lg:pt-24 lg:pb-24">
-            <p className="type-eyebrow text-accent">My Trades</p>
-            <h1 className="type-h1 mt-3 text-balance">Add a trade</h1>
-            <p className="type-body-lg mt-4 text-muted text-pretty">
-              Creating trades is coming soon.
-            </p>
-            <Link href="/trades" className="btn btn-secondary mt-8 w-full sm:w-auto">
-              Back to my trades
-            </Link>
+            <h1 className="type-h1 text-balance">Add a trade</h1>
+            <div className="mt-10">
+              <AddTradeForm />
+            </div>
           </div>
         </section>
       </main>
