@@ -11,6 +11,7 @@ const navItems: NavItem[] = [
   { label: "How it works", href: "/how-it-works" },
   { label: "FAQ", href: "/faq" },
   { label: "Support", href: "/support" },
+  { label: "My Trades", href: "/trades" },
 ];
 
 /**
