@@ -38,7 +38,7 @@ export function EscrowActionButton({
   escrow: Address;
   /** The wallet that must send the transaction. */
   account: Address;
-  functionName: "sellerDeposit" | "buyerDeposit" | "withdraw";
+  functionName: "sellerDeposit" | "buyerDeposit" | "withdraw" | "settle";
   /** In wei; deposits must send the exact amount. */
   value?: bigint;
   /** Finishes "Connect your wallet to …", e.g. "deposit". */
@@ -63,9 +63,9 @@ export function EscrowActionButton({
       }
 
       try {
-        const hash = await (functionName === "withdraw"
-          ? writeContractAsync({ address: escrow, abi: escrowAbi, functionName })
-          : writeContractAsync({ address: escrow, abi: escrowAbi, functionName, value }));
+        const hash = await (functionName === "sellerDeposit" || functionName === "buyerDeposit"
+          ? writeContractAsync({ address: escrow, abi: escrowAbi, functionName, value })
+          : writeContractAsync({ address: escrow, abi: escrowAbi, functionName }));
         const receipt = await publicClient.waitForTransactionReceipt({ hash });
         if (receipt.status !== "success") return fail("The transaction failed.");
       } catch (error) {

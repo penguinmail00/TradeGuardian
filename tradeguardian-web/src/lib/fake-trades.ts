@@ -4,7 +4,7 @@ import type { Trade } from "@/lib/trades";
 
 // Placeholder data until trades are read from the factory's EscrowCreated logs
 // for the connected wallet.
-export const currentUser: Address = "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4";
+export const currentUser: Address = "0x98ccB132FfeAf4E8C6D328211BAD57413AbaB84A";
 
 export const trades: Trade[] = [
   {
@@ -19,6 +19,8 @@ export const trades: Trade[] = [
     state: "AWAITING_DEPOSIT",
     hasSellerDeposited: false,
     hasBuyerDeposited: false,
+    hasSellerSettled: false,
+    hasBuyerSettled: false,
     createdAt: new Date("2026-10-04T03:10:00Z"),
   },
   {
@@ -33,6 +35,8 @@ export const trades: Trade[] = [
     state: "AWAITING_DEPOSIT",
     hasSellerDeposited: true,
     hasBuyerDeposited: false,
+    hasSellerSettled: false,
+    hasBuyerSettled: false,
     createdAt: new Date("2026-10-02T18:24:00Z"),
   },
   {
@@ -47,6 +51,8 @@ export const trades: Trade[] = [
     state: "ITEM_SENT",
     hasSellerDeposited: true,
     hasBuyerDeposited: true,
+    hasSellerSettled: false,
+    hasBuyerSettled: false,
     createdAt: new Date("2026-09-30T09:12:00Z"),
   },
   {
@@ -61,6 +67,8 @@ export const trades: Trade[] = [
     state: "AWAITING_DELIVERY",
     hasSellerDeposited: true,
     hasBuyerDeposited: true,
+    hasSellerSettled: false,
+    hasBuyerSettled: false,
     createdAt: new Date("2026-09-28T15:40:00Z"),
   },
   {
@@ -69,13 +77,31 @@ export const trades: Trade[] = [
     itemName: "Swiss automatic dive watch",
     description:
       "Unworn, full set with box and papers dated 2024. Black dial, 41mm steel case.",
-    seller: "0x617F2E2fD72FD9D5503197092aC168c91465E7f2",
-    buyer: currentUser,
+    seller: currentUser,
+    buyer: "0x617F2E2fD72FD9D5503197092aC168c91465E7f2",
     itemPrice: parseEther("3"),
     state: "ITEM_INCORRECT",
     hasSellerDeposited: true,
     hasBuyerDeposited: true,
+    hasSellerSettled: true,
+    hasBuyerSettled: false,
     createdAt: new Date("2026-09-21T11:05:00Z"),
+  },
+  {
+    escrow: "0x193558FC6e91e5F72C98A8A7A59CB0829984f614",
+    transactionHash: "0x1df0fa31054d16087aa355b042529572f670b29d3e9741a56e286661ac3cd884",
+    itemName: "Noise-cancelling headphones",
+    description:
+      "Over-ear, black. Barely used, with the carrying case and charging cable.",
+    seller: currentUser,
+    buyer: "0x28438014db95BdB8254bB3F5ffE9B888b5D5c9b5",
+    itemPrice: parseEther("0.35"),
+    state: "ITEM_INCORRECT",
+    hasSellerDeposited: true,
+    hasBuyerDeposited: true,
+    hasSellerSettled: false,
+    hasBuyerSettled: true,
+    createdAt: new Date("2026-09-18T16:20:00Z"),
   },
   {
     escrow: "0x1291Be112d480055DaFd8a610b7d1e203891C274",
@@ -89,7 +115,25 @@ export const trades: Trade[] = [
     state: "ITEM_RECEIVED",
     hasSellerDeposited: true,
     hasBuyerDeposited: true,
+    hasSellerSettled: false,
+    hasBuyerSettled: false,
     createdAt: new Date("2026-09-14T20:30:00Z"),
+  },
+  {
+    escrow: "0xC1794fd214C774f648C24619b2D4937Af09793B4",
+    transactionHash: "0x499b739b7aa7fa971afd6d62da30fa69ac53eb062c2ca83708f661f2e4d414e1",
+    itemName: "Leather messenger bag",
+    description:
+      "Full-grain brown leather with brass buckles. Fits a 15-inch laptop.",
+    seller: "0x612C911a896D0E6Fb60D70b32d195647d0Ed3e89",
+    buyer: currentUser,
+    itemPrice: parseEther("0.4"),
+    state: "SETTLED",
+    hasSellerDeposited: true,
+    hasBuyerDeposited: true,
+    hasSellerSettled: true,
+    hasBuyerSettled: true,
+    createdAt: new Date("2026-09-11T10:45:00Z"),
   },
   {
     escrow: "0x1D82D6CF2c18903444C6599245a4074D7505C10A",
@@ -103,6 +147,8 @@ export const trades: Trade[] = [
     state: "SETTLED",
     hasSellerDeposited: true,
     hasBuyerDeposited: true,
+    hasSellerSettled: false,
+    hasBuyerSettled: false,
     createdAt: new Date("2026-09-08T13:50:00Z"),
   },
   {
@@ -117,6 +163,8 @@ export const trades: Trade[] = [
     state: "TRADE_CANCELED",
     hasSellerDeposited: false,
     hasBuyerDeposited: true,
+    hasSellerSettled: false,
+    hasBuyerSettled: false,
     createdAt: new Date("2026-09-03T08:15:00Z"),
   },
 ];

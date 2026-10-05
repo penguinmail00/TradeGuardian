@@ -16,6 +16,7 @@ import { getRequestTime } from "@/lib/request-time";
 import {
   canArchive,
   canCancel,
+  canSettle,
   getDeposit,
   getExpiration,
   isExpired,
@@ -82,16 +83,30 @@ export default async function TradePage({ params }: PageProps<"/trades/[address]
                   </span>
                   {trade.state === "AWAITING_DEPOSIT" && (
                     <ul aria-label="Deposits" className="flex flex-col gap-1.5">
-                      <DepositStatus
-                        side="Seller"
-                        hasDeposited={trade.hasSellerDeposited}
-                        amount={getDeposit(trade, true)}
-                      />
-                      <DepositStatus
-                        side="Buyer"
-                        hasDeposited={trade.hasBuyerDeposited}
-                        amount={getDeposit(trade, false)}
-                      />
+                      <ChecklistItem isDone={trade.hasSellerDeposited}>
+                        {trade.hasSellerDeposited
+                          ? `Seller has deposited ${formatEther(getDeposit(trade, true))} MON`
+                          : "Seller has not deposited funds"}
+                      </ChecklistItem>
+                      <ChecklistItem isDone={trade.hasBuyerDeposited}>
+                        {trade.hasBuyerDeposited
+                          ? `Buyer has deposited ${formatEther(getDeposit(trade, false))} MON`
+                          : "Buyer has not deposited funds"}
+                      </ChecklistItem>
+                    </ul>
+                  )}
+                  {trade.state === "ITEM_INCORRECT" && (
+                    <ul aria-label="Settlement" className="flex flex-col gap-1.5">
+                      <ChecklistItem isDone={trade.hasSellerSettled}>
+                        {trade.hasSellerSettled
+                          ? "Seller has requested to settle"
+                          : "Seller has not requested to settle"}
+                      </ChecklistItem>
+                      <ChecklistItem isDone={trade.hasBuyerSettled}>
+                        {trade.hasBuyerSettled
+                          ? "Buyer has requested to settle"
+                          : "Buyer has not requested to settle"}
+                      </ChecklistItem>
                     </ul>
                   )}
                 </span>
@@ -159,6 +174,19 @@ export default async function TradePage({ params }: PageProps<"/trades/[address]
                 />
               </div>
             )}
+            {canSettle(trade, isSeller) && (
+              <div className="mt-6">
+                <EscrowActionButton
+                  escrow={trade.escrow}
+                  account={currentUser}
+                  functionName="settle"
+                  verb="settle"
+                  label="Settle"
+                  pendingLabel="Settling…"
+                  successMessage="Settlement confirmed. The deposits are returned once both sides settle."
+                />
+              </div>
+            )}
             {canArchive(trade) && <ArchiveForm escrow={trade.escrow} isArchived={isArchived(trade)} />}
           </div>
         </section>
@@ -215,26 +243,16 @@ function DetailRow({
 }
 
 /**
- * One line of the deposit checklist: a filled check once this side has locked
- * its deposit, an empty dashed circle until then. Rows are left-aligned with
- * each other so the icons line up, even when the list sits on the right.
+ * One line of a per-side checklist (deposits, settlement): a filled check once
+ * this side has done its part, an empty dashed circle until then. Rows are
+ * left-aligned with each other so the icons line up, even when the list sits
+ * on the right.
  */
-function DepositStatus({
-  side,
-  hasDeposited,
-  amount,
-}: {
-  side: "Seller" | "Buyer";
-  hasDeposited: boolean;
-  /** In wei; what this side deposits, shown once it has. */
-  amount: bigint;
-}) {
+function ChecklistItem({ isDone, children }: { isDone: boolean; children: ReactNode }) {
   return (
-    <li className={`type-small flex items-center gap-2 ${hasDeposited ? "text-green" : "text-muted"}`}>
-      {hasDeposited ? <CheckCircleIcon /> : <PendingCircleIcon />}
-      {hasDeposited
-        ? `${side} has deposited ${formatEther(amount)} MON`
-        : `${side} has not deposited funds`}
+    <li className={`type-small flex items-center gap-2 ${isDone ? "text-green" : "text-muted"}`}>
+      {isDone ? <CheckCircleIcon /> : <PendingCircleIcon />}
+      {children}
     </li>
   );
 }

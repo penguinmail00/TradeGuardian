@@ -25,6 +25,12 @@ export type Trade = {
   /** Whether each side has locked its deposit, from the escrow's `userBalances`. */
   hasSellerDeposited: boolean;
   hasBuyerDeposited: boolean;
+  /**
+   * Whether each side has called the escrow's `settle` after an
+   * incorrect-item report, like its `hasSellerSettled` and `hasBuyerSettled`.
+   */
+  hasSellerSettled: boolean;
+  hasBuyerSettled: boolean;
   /** From the escrow's `contractCreationDate` (block timestamp, in seconds). */
   createdAt: Date;
 };
@@ -137,6 +143,15 @@ export function isExpired(trade: Trade, nowMs: number) {
 export function canCancel(trade: Trade, isSeller: boolean, nowMs: number) {
   if (!isExpired(trade, nowMs)) return false;
   return isSeller ? trade.hasSellerDeposited : trade.hasBuyerDeposited;
+}
+
+/**
+ * After an incorrect-item report, each side settles once (the escrow's
+ * `settle`). Once both have, the escrow returns the remaining deposits.
+ */
+export function canSettle(trade: Trade, isSeller: boolean) {
+  if (trade.state !== "ITEM_INCORRECT") return false;
+  return isSeller ? !trade.hasSellerSettled : !trade.hasBuyerSettled;
 }
 
 /** `0x5B38…ddC4`. Also used for transaction hashes. */

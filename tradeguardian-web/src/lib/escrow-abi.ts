@@ -38,4 +38,11 @@ export const escrowAbi = [
     inputs: [],
     outputs: [],
   },
+  {
+    type: "function",
+    name: "settle",
+    stateMutability: "nonpayable",
+    inputs: [],
+    outputs: [],
+  },
 ] as const;
