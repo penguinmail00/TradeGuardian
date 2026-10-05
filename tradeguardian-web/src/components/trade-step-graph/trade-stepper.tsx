@@ -5,24 +5,18 @@ import StepContent from "@mui/material/StepContent";
 import type { StepIconProps } from "@mui/material/StepIcon";
 import StepLabel from "@mui/material/StepLabel";
 import Stepper, { type StepperProps } from "@mui/material/Stepper";
-import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { ThemeProvider } from "@mui/material/styles";
+
+import {
+  accentStepMarkerClassName,
+  getLineGradient,
+  stepperTheme,
+} from "@/components/trade-step-graph/stepper-theme";
 
 export type TradeStep = {
   title: string;
   description: string;
 };
-
-// Mirrors the design tokens in globals.css; MUI needs literal colors to derive
-// its palette variants.
-const theme = createTheme({
-  palette: {
-    mode: "dark",
-    primary: { main: "#00c3ff" },
-    text: { primary: "#ffffff", secondary: "#b5bdc2" },
-    divider: "#2b2e36",
-  },
-  typography: { fontFamily: "var(--font-sans)" },
-});
 
 const iconSize = 40;
 // Space between a step icon and its connector line or label text.
@@ -31,14 +25,6 @@ const iconGap = 12;
 const columnGap = 24;
 // Vertical gap between the end of one step's text and the next icon.
 const rowGap = 32;
-
-/**
- * Connector lines fade from the accent into the border color, matching
- * Tailwind's `bg-linear-to-* from-accent/70 to-border`.
- */
-function getLineGradient(direction: "bottom" | "right") {
-  return `linear-gradient(to ${direction} in oklab, color-mix(in oklab, var(--accent) 70%, transparent), var(--border))`;
-}
 
 // Pulls each description up so it starts 8px under its title: the title's
 // 8px offset plus its 19px line end 27px down the 40px icon, so the
@@ -123,7 +109,7 @@ function getHorizontalSx(stepCount: number): StepperProps["sx"] {
  */
 export function TradeStepper({ steps }: { steps: TradeStep[] }) {
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={stepperTheme}>
       {/* activeStep={-1}: this is an explainer, not a progress tracker, so
           no step is highlighted as current or completed. */}
       <Stepper
@@ -200,7 +186,7 @@ function StepDescription({
 /** Numbered cyan marker replacing MUI's default filled circle. */
 function TradeStepIcon({ icon }: StepIconProps) {
   return (
-    <span className="flex size-10 items-center justify-center rounded-full border border-accent bg-tint-cyan font-heading font-bold text-accent shadow-[0_0_24px_rgb(0_195_255/0.25)]">
+    <span className={`flex size-10 items-center justify-center rounded-full ${accentStepMarkerClassName}`}>
       {icon}
     </span>
   );

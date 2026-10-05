@@ -1,28 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import type { ReactNode } from "react";
-import { formatEther, type Address, type Hash } from "viem";
+import type { Address } from "viem";
 
 import { SiteFooter } from "@/components/site-shell/site-footer";
 import { SiteHeader } from "@/components/site-shell/site-header";
 import { BackToTradesLink } from "@/components/trades/back-to-trades-link";
-import { CopyButton } from "@/components/trades/copy-button";
-import { EscrowActionButton } from "@/components/trades/escrow-action-button";
-import { TradeTimestamp } from "@/components/trades/trade-time";
-import { TradeStatusBadge } from "@/components/trades/trade-status-badge";
+import { TradeSteps } from "@/components/trades/trade-steps";
 import { explorerName, getExplorerAddressUrl } from "@/lib/explorer";
-import { currentUser, findTrade, isArchived } from "@/lib/fake-trades";
-import { getRequestTime } from "@/lib/request-time";
-import {
-  canArchive,
-  canCancel,
-  canSettle,
-  getDeposit,
-  getExpiration,
-  isExpired,
-  needsDeposit,
-  tradeStatuses,
-} from "@/lib/trades";
+import { findTrade, isArchived } from "@/lib/fake-trades";
+import { canArchive, tradeStatuses } from "@/lib/trades";
 
 import { setTradeArchived } from "../actions";
 
@@ -51,10 +37,6 @@ export default async function TradePage({ params }: PageProps<"/trades/[address]
   const trade = findTrade(address);
   if (!trade) notFound();
 
-  const isSeller = trade.seller === currentUser;
-  const price = `${formatEther(trade.itemPrice)} MON`;
-  const deposit = getDeposit(trade, isSeller);
-
   return (
     <div className="relative flex min-h-full flex-1 flex-col">
       <SiteHeader />
@@ -74,119 +56,10 @@ export default async function TradePage({ params }: PageProps<"/trades/[address]
                 <ExternalLinkIcon />
               </a>
             </div>
-            <dl className="panel type-body mt-10 divide-y divide-border">
-              <DetailRow label="Status">
-                <span className="flex flex-col items-start gap-3 sm:items-end">
-                  <TradeStatusBadge state={trade.state} />
-                  <span className="type-small max-w-[45ch] text-muted text-pretty sm:text-right">
-                    {tradeStatuses[trade.state].description}
-                  </span>
-                  {trade.state === "AWAITING_DEPOSIT" && (
-                    <ul aria-label="Deposits" className="flex flex-col gap-1.5">
-                      <ChecklistItem isDone={trade.hasSellerDeposited}>
-                        {trade.hasSellerDeposited
-                          ? `Seller has deposited ${formatEther(getDeposit(trade, true))} MON`
-                          : "Seller has not deposited funds"}
-                      </ChecklistItem>
-                      <ChecklistItem isDone={trade.hasBuyerDeposited}>
-                        {trade.hasBuyerDeposited
-                          ? `Buyer has deposited ${formatEther(getDeposit(trade, false))} MON`
-                          : "Buyer has not deposited funds"}
-                      </ChecklistItem>
-                    </ul>
-                  )}
-                  {trade.state === "ITEM_INCORRECT" && (
-                    <ul aria-label="Settlement" className="flex flex-col gap-1.5">
-                      <ChecklistItem isDone={trade.hasSellerSettled}>
-                        {trade.hasSellerSettled
-                          ? "Seller has requested to settle"
-                          : "Seller has not requested to settle"}
-                      </ChecklistItem>
-                      <ChecklistItem isDone={trade.hasBuyerSettled}>
-                        {trade.hasBuyerSettled
-                          ? "Buyer has requested to settle"
-                          : "Buyer has not requested to settle"}
-                      </ChecklistItem>
-                    </ul>
-                  )}
-                </span>
-              </DetailRow>
-              <DetailRow label="Contract Address">
-                <AddressValue address={trade.escrow} copyLabel="Copy contract address" />
-              </DetailRow>
-              <DetailRow label="Transaction ID">
-                <AddressValue address={trade.transactionHash} copyLabel="Copy transaction ID" isSingleLine />
-              </DetailRow>
-              <DetailRow label="Item price">{price}</DetailRow>
-              <DetailRow label="Your deposit">
-                {formatEther(deposit)} MON
-              </DetailRow>
-              <DetailRow label="Seller">
-                <AddressValue address={trade.seller} copyLabel={isSeller ? undefined : "Copy seller address"} />
-              </DetailRow>
-              <DetailRow label="Buyer">
-                <AddressValue address={trade.buyer} copyLabel={isSeller ? "Copy buyer address" : undefined} />
-              </DetailRow>
-              <DetailRow label="Created">
-                <TradeTimestamp dateTime={trade.createdAt.toISOString()} serverNow={getRequestTime()} />
-              </DetailRow>
-              <DetailRow label="Expiration">
-                <span className="flex flex-wrap items-center gap-x-3 gap-y-2 sm:justify-end">
-                  {isExpired(trade, getRequestTime()) && (
-                    <span className="type-small inline-block rounded-full bg-danger/10 px-3 py-1 font-medium whitespace-nowrap text-danger">
-                      Expired
-                    </span>
-                  )}
-                  <TradeTimestamp dateTime={getExpiration(trade).toISOString()} serverNow={getRequestTime()} />
-                </span>
-              </DetailRow>
-              <DetailRow label="Item name">{trade.itemName}</DetailRow>
-              <DetailRow label="Description" isParagraph>
-                {trade.description}
-              </DetailRow>
-            </dl>
+            <div className="panel mt-10 px-5 py-6 lg:px-6">
+              <TradeSteps trade={trade} />
+            </div>
 
-            {needsDeposit(trade, isSeller) && (
-              <div className="mt-6">
-                <EscrowActionButton
-                  escrow={trade.escrow}
-                  account={currentUser}
-                  functionName={isSeller ? "sellerDeposit" : "buyerDeposit"}
-                  value={deposit}
-                  verb="deposit"
-                  label={`Deposit ${formatEther(deposit)} MON`}
-                  pendingLabel="Depositing…"
-                  successMessage="Deposit confirmed."
-                />
-              </div>
-            )}
-            {canCancel(trade, isSeller, getRequestTime()) && (
-              <div className="mt-6">
-                <EscrowActionButton
-                  escrow={trade.escrow}
-                  account={currentUser}
-                  functionName="withdraw"
-                  verb="cancel the trade"
-                  label="Cancel trade"
-                  pendingLabel="Canceling…"
-                  successMessage="Trade canceled. Your deposit was returned."
-                  variant="destructive"
-                />
-              </div>
-            )}
-            {canSettle(trade, isSeller) && (
-              <div className="mt-6">
-                <EscrowActionButton
-                  escrow={trade.escrow}
-                  account={currentUser}
-                  functionName="settle"
-                  verb="settle"
-                  label="Settle"
-                  pendingLabel="Settling…"
-                  successMessage="Settlement confirmed. The deposits are returned once both sides settle."
-                />
-              </div>
-            )}
             {canArchive(trade) && <ArchiveForm escrow={trade.escrow} isArchived={isArchived(trade)} />}
           </div>
         </section>
@@ -196,10 +69,6 @@ export default async function TradePage({ params }: PageProps<"/trades/[address]
   );
 }
 
-/**
- * Label on the left, value on the right. `isParagraph` left-aligns the value
- * and keeps its line breaks, for free text like the description.
- */
 /**
  * Plain form posting to a server action, so it works before hydration. The
  * page re-renders with the new state once the action revalidates it.
@@ -219,115 +88,10 @@ function ArchiveForm({ escrow, isArchived }: { escrow: Address; isArchived: bool
   );
 }
 
-function DetailRow({
-  label,
-  isParagraph = false,
-  children,
-}: {
-  label: string;
-  isParagraph?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <div className="flex flex-col gap-1 px-5 py-4 sm:flex-row sm:justify-between sm:gap-6 lg:px-6">
-      <dt className="shrink-0 text-muted">{label}</dt>
-      <dd
-        className={
-          isParagraph ? "whitespace-pre-line text-pretty sm:max-w-[65%]" : "min-w-0 sm:text-right"
-        }
-      >
-        {children}
-      </dd>
-    </div>
-  );
-}
-
-/**
- * One line of a per-side checklist (deposits, settlement): a filled check once
- * this side has done its part, an empty dashed circle until then. Rows are
- * left-aligned with each other so the icons line up, even when the list sits
- * on the right.
- */
-function ChecklistItem({ isDone, children }: { isDone: boolean; children: ReactNode }) {
-  return (
-    <li className={`type-small flex items-center gap-2 ${isDone ? "text-green" : "text-muted"}`}>
-      {isDone ? <CheckCircleIcon /> : <PendingCircleIcon />}
-      {children}
-    </li>
-  );
-}
-
 function ExternalLinkIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="size-4 shrink-0">
       <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
     </svg>
-  );
-}
-
-function CheckCircleIcon() {
-  return (
-    <svg viewBox="0 0 16 16" className="size-4 shrink-0" aria-hidden="true">
-      <circle cx="8" cy="8" r="8" fill="currentColor" />
-      <path
-        d="m4.75 8.25 2.25 2.25 4.25-4.5"
-        fill="none"
-        stroke="var(--surface)"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function PendingCircleIcon() {
-  return (
-    <svg viewBox="0 0 16 16" className="size-4 shrink-0" aria-hidden="true">
-      <circle
-        cx="8"
-        cy="8"
-        r="7"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeDasharray="2.75 2.75"
-      />
-    </svg>
-  );
-}
-
-/**
- * Full address or transaction hash so it can be checked character by
- * character; marks the user's own address. Pass `copyLabel` to show a copy
- * button. `isSingleLine` keeps it on one line no wider than an address (42
- * characters), cutting out the middle with an ellipsis but always keeping the
- * last 4 characters, like `shortenAddress`; the full value stays in the
- * tooltip and the copy button.
- */
-function AddressValue({
-  address,
-  copyLabel,
-  isSingleLine = false,
-}: {
-  address: Address | Hash;
-  copyLabel?: string;
-  isSingleLine?: boolean;
-}) {
-  return (
-    <span className="flex items-center gap-2 sm:justify-end">
-      {isSingleLine ? (
-        <span title={address} className="flex min-w-0 max-w-[42ch] font-mono">
-          <span className="truncate">{address.slice(0, -4)}</span>
-          <span className="shrink-0">{address.slice(-4)}</span>
-        </span>
-      ) : (
-        <span className="min-w-0 font-mono break-all text-balance">
-          {address}
-          {address === currentUser && <span className="font-sans text-muted"> (you)</span>}
-        </span>
-      )}
-      {copyLabel && <CopyButton value={address} label={copyLabel} />}
-    </span>
   );
 }

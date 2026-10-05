@@ -311,11 +311,23 @@
     }
   }
 
+  /* Turns white on hover, like .btn-primary. */
   .btn-destructive {
     background: var(--danger);
-    color: #ffffff;
+    color: var(--on-accent);
     &:hover {
-      filter: brightness(1.1);
+      background: var(--foreground);
+      color: var(--on-accent);
+    }
+  }
+
+  /* Green fill; turns white on hover, like .btn-primary. */
+  .btn-success {
+    background: var(--green);
+    color: var(--on-accent);
+    &:hover {
+      background: var(--foreground);
+      color: var(--on-accent);
     }
   }
 

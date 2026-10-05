@@ -68,7 +68,13 @@ export function TradeTimeCell(props: TimeProps) {
  * lists UTC, Local, and Unix Timestamp, each with a copy button; picking one
  * makes it the button's format. Like Etherscan, every visit starts on UTC.
  */
-export function TradeTimestamp(props: TimeProps) {
+export function TradeTimestamp({
+  hasClockIcon = true,
+  ...props
+}: TimeProps & {
+  /** Show the clock before the age. */
+  hasClockIcon?: boolean;
+}) {
   const { age, timestamp } = useTimeParts(props);
   const [format, setFormat] = useState<TimestampFormat>("utc");
   const [isOpen, setIsOpen] = useState(false);
@@ -100,7 +106,7 @@ export function TradeTimestamp(props: TimeProps) {
   return (
     <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-2 sm:justify-end">
       <time dateTime={props.dateTime} className={`inline-flex items-center gap-1.5 ${props.className ?? ""}`}>
-        <ClockIcon />
+        {hasClockIcon && <ClockIcon />}
         {age}
       </time>
       <span ref={containerRef} className="relative">

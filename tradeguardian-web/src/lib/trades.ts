@@ -89,6 +89,56 @@ export const tradeStatuses: Record<EscrowState, TradeStatus> = {
   },
 };
 
+export type TradeStepStatus = "complete" | "current" | "upcoming" | "failed";
+
+type TradeStep = {
+  label: string;
+  /** The escrow states a trade can be in, or end in, at this step. */
+  states: EscrowState[];
+};
+
+export const tradeSteps: TradeStep[] = [
+  { label: "Create Trade", states: [] },
+  { label: "Awaiting deposits", states: ["AWAITING_DEPOSIT", "TRADE_CANCELED"] },
+  {
+    label: "Awaiting item delivery from seller",
+    states: ["AWAITING_DELIVERY", "ITEM_SENT", "ITEM_INCORRECT"],
+  },
+  { label: "Return deposits to both parties", states: ["ITEM_RECEIVED", "SETTLED"] },
+];
+
+/**
+ * The trade's status description, for the step that status belongs to; other
+ * steps have none, so a step never describes something that hasn't happened.
+ */
+export function getStepDescription(step: TradeStep, trade: Trade) {
+  return step.states.includes(trade.state) ? tradeStatuses[trade.state].description : undefined;
+}
+
+/**
+ * Where the trade sits in its four steps: creation, deposits, delivery, then
+ * the escrow returning deposits. A trade that exists has been created, so the
+ * first step is always complete. A wrong-item report fails the delivery step
+ * and makes the return current while both sides settle; a canceled trade
+ * stops at deposits.
+ */
+export function getTradeSteps(trade: Trade): TradeStepStatus[] {
+  switch (trade.state) {
+    case "AWAITING_DEPOSIT":
+      return ["complete", "current", "upcoming", "upcoming"];
+    case "AWAITING_DELIVERY":
+    case "ITEM_SENT":
+      return ["complete", "complete", "current", "upcoming"];
+    case "ITEM_INCORRECT":
+      return ["complete", "complete", "failed", "current"];
+    case "ITEM_RECEIVED":
+    case "SETTLED":
+      return ["complete", "complete", "complete", "complete"];
+    case "TRADE_CANCELED":
+      return ["complete", "failed", "upcoming", "upcoming"];
+  }
+}
+
 /**
  * Only finished trades can be archived, so a trade that still needs action
  * can't be hidden by accident.
@@ -143,6 +193,25 @@ export function isExpired(trade: Trade, nowMs: number) {
 export function canCancel(trade: Trade, isSeller: boolean, nowMs: number) {
   if (!isExpired(trade, nowMs)) return false;
   return isSeller ? trade.hasSellerDeposited : trade.hasBuyerDeposited;
+}
+
+/**
+ * Once both deposits are locked, the seller hands over the item and marks it
+ * delivered (the escrow's `setSellerHasGivenItem`).
+ */
+export function canMarkDelivered(trade: Trade, isSeller: boolean) {
+  return isSeller && trade.state === "AWAITING_DELIVERY";
+}
+
+/**
+ * Once the seller has marked the item delivered, the buyer either confirms
+ * the agreed item arrived (the escrow's `setBuyerHasReceivedCorrectItem`,
+ * which pays out) or reports a wrong or missing item
+ * (`setBuyerHasReceivedIncorrectItem`, which returns 25% of the buyer's
+ * deposit and locks the rest until both sides settle).
+ */
+export function canConfirmReceipt(trade: Trade, isSeller: boolean) {
+  return !isSeller && trade.state === "ITEM_SENT";
 }
 
 /**
