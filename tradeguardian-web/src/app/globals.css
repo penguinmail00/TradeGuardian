@@ -17,6 +17,7 @@
   --muted: #b5bdc2;
   --border: #2b2e36;
   --border-footer: #293139;
+  --nav-icon: #677897;
 
   --accent: #00c3ff;
   --on-accent: #0c0c0f;
@@ -48,6 +49,7 @@
   --color-muted: var(--muted);
   --color-border: var(--border);
   --color-border-footer: var(--border-footer);
+  --color-nav-icon: var(--nav-icon);
   --color-accent: var(--accent);
   --color-on-accent: var(--on-accent);
   --color-turquoise: var(--turquoise);
@@ -74,6 +76,14 @@
     background: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);
+  }
+
+  /* RainbowKitProvider wraps the app in a theme div; let it fill the body so
+     each page's flex-1 main pushes the footer to the bottom of the viewport. */
+  body > [data-rk] {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
   }
 
   :focus-visible {
