@@ -108,14 +108,6 @@ export const tradeSteps: TradeStep[] = [
 ];
 
 /**
- * The trade's status description, for the step that status belongs to; other
- * steps have none, so a step never describes something that hasn't happened.
- */
-export function getStepDescription(step: TradeStep, trade: Trade) {
-  return step.states.includes(trade.state) ? tradeStatuses[trade.state].description : undefined;
-}
-
-/**
  * Where the trade sits in its four steps: creation, deposits, delivery, then
  * the escrow returning deposits. A trade that exists has been created, so the
  * first step is always complete. A wrong-item report fails the delivery step
@@ -156,6 +148,31 @@ export function getDeposit(trade: Trade, isSeller: boolean) {
   return isSeller ? trade.itemPrice : trade.itemPrice * BigInt(2);
 }
 
+/** Mirrors `FEE_PERCENTAGE` in `Escrow`. */
+const feePercentage = BigInt(1);
+
+/**
+ * What the escrow pays out when the buyer confirms the agreed item, all in
+ * wei, mirroring `setBuyerHasReceivedCorrectItem`: the seller gets the item
+ * price plus their deposit, the buyer gets their deposit minus the price, and
+ * each side pays half of a 1% fee on the price out of that. Returns are
+ * after the fee, so they match what each wallet received.
+ */
+export function getCompletedPayout(trade: Trade) {
+  const totalFee = (trade.itemPrice * feePercentage) / BigInt(100);
+  // The contract's `feePerParty` is the seller's half, rounded down; the
+  // buyer pays the rest.
+  const sellerFee = totalFee / BigInt(2);
+  const buyerFee = totalFee - sellerFee;
+
+  return {
+    /** The item price, from the buyer's deposit to the seller. */
+    paidToSeller: trade.itemPrice,
+    returnedToSeller: getDeposit(trade, true) - sellerFee,
+    returnedToBuyer: getDeposit(trade, false) - trade.itemPrice - buyerFee,
+  };
+}
+
 /**
  * While the escrow is awaiting deposits, each side deposits once. True when
  * it's this side's turn to deposit.
@@ -193,6 +210,15 @@ export function isExpired(trade: Trade, nowMs: number) {
 export function canCancel(trade: Trade, isSeller: boolean, nowMs: number) {
   if (!isExpired(trade, nowMs)) return false;
   return isSeller ? trade.hasSellerDeposited : trade.hasBuyerDeposited;
+}
+
+/**
+ * Which side canceled a canceled trade. Only a side that deposited can cancel,
+ * and a trade where both had deposited can't be, so it's the one that did.
+ */
+export function getCanceledBy(trade: Trade) {
+  if (trade.state !== "TRADE_CANCELED") return undefined;
+  return trade.hasSellerDeposited ? "Seller" : "Buyer";
 }
 
 /**

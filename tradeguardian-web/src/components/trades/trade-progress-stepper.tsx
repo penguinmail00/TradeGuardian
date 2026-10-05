@@ -6,20 +6,17 @@ import type { StepIconProps } from "@mui/material/StepIcon";
 import StepLabel from "@mui/material/StepLabel";
 import Stepper, { type StepperProps } from "@mui/material/Stepper";
 import { ThemeProvider } from "@mui/material/styles";
-import type { ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 
 import {
   accentStepMarkerClassName,
   stepperTheme,
 } from "@/components/trade-step-graph/stepper-theme";
-import { TradeStepText } from "@/components/trades/trade-step-text";
 import type { TradeStepStatus } from "@/lib/trades";
 
 export type TradeProgressStep = {
   label: string;
   status: TradeStepStatus;
-  /** Shown from an info button beside the label. */
-  description?: string;
   /** Rendered under the label, e.g. a checklist or the trade's details. */
   content?: ReactNode;
 };
@@ -78,9 +75,10 @@ const sx: StepperProps["sx"] = {
 
 /**
  * The trade's progress as MUI's vertical Stepper, sharing the home page
- * stepper's theme and marker. Each step's label can carry an info button with
- * a description, and its content (passed in already rendered by the server)
- * stays expanded under it.
+ * stepper's theme and marker. Each step's content (passed in already rendered
+ * by the server) sits under its label. Steps with content start open, and a
+ * chevron button in the label row collapses or expands each one, except the
+ * current step, which always stays open.
  */
 export function TradeProgressStepper({
   steps,
@@ -88,6 +86,14 @@ export function TradeProgressStepper({
   steps: TradeProgressStep[];
 }) {
   const activeStep = steps.findIndex((step) => step.status === "current");
+  const [openSteps, setOpenSteps] = useState(() => steps.map(() => true));
+  const contentIdPrefix = useId();
+
+  function toggleStep(index: number) {
+    setOpenSteps((open) =>
+      open.map((isOpen, i) => (i === index ? !isOpen : isOpen)),
+    );
+  }
 
   return (
     <ThemeProvider theme={stepperTheme}>
@@ -100,15 +106,20 @@ export function TradeProgressStepper({
       >
         {steps.map((step, index) => {
           const nextStatus = steps[index + 1]?.status;
+          // The current step always stays open, so it has no chevron.
+          const isCollapsible =
+            Boolean(step.content) && step.status !== "current";
+          const isOpen = !isCollapsible || (openSteps[index] ?? true);
+          const contentId = `${contentIdPrefix}-${index}`;
 
           return (
-            // `expanded` keeps every step's content visible, not just the
-            // active one's; `active` and `completed` override what MUI
-            // would infer from `activeStep`.
+            // `expanded` lets any step's content show, not just the active
+            // one's; `active` and `completed` override what MUI would infer
+            // from `activeStep`.
             <Step
               key={step.label}
               component="li"
-              expanded
+              expanded={isOpen}
               active={step.status === "current"}
               completed={step.status === "complete"}
               aria-current={step.status === "current" ? "step" : undefined}
@@ -120,24 +131,58 @@ export function TradeProgressStepper({
                 slots={{ stepIcon: ProgressStepIcon }}
                 error={step.status === "failed"}
               >
-                <TradeStepText
-                  label={step.label}
-                  description={step.description}
-                  className={
-                    step.status === "current"
-                      ? "font-medium text-foreground"
-                      : "text-muted"
-                  }
-                >
-                  <span className="sr-only">{`, step ${index + 1}: ${statusText[step.status]}`}</span>
-                </TradeStepText>
+                {/* As tall as the icon, so the label sits centred beside it. */}
+                <span className="flex min-h-10 items-center gap-1">
+                  <span
+                    className={`type-body text-pretty ${
+                      step.status === "current"
+                        ? "font-medium text-foreground"
+                        : "text-muted"
+                    }`}
+                  >
+                    {step.label}
+                    <span className="sr-only">{`, step ${index + 1}: ${statusText[step.status]}`}</span>
+                  </span>
+                  {isCollapsible && (
+                    <button
+                      type="button"
+                      onClick={() => toggleStep(index)}
+                      aria-expanded={isOpen}
+                      aria-controls={contentId}
+                      aria-label={`${isOpen ? "Collapse" : "Expand"} ${step.label}`}
+                      className="inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted transition-colors hover:bg-input hover:text-foreground focus-visible:bg-input focus-visible:text-foreground"
+                    >
+                      <ChevronIcon isOpen={isOpen} />
+                    </button>
+                  )}
+                </span>
               </StepLabel>
-              {step.content && <StepContent>{step.content}</StepContent>}
+              {step.content && (
+                <StepContent id={contentId}>{step.content}</StepContent>
+              )}
             </Step>
           );
         })}
       </Stepper>
     </ThemeProvider>
+  );
+}
+
+/** Points down while the step is open, right while it's collapsed. */
+function ChevronIcon({ isOpen }: { isOpen: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={`size-4 transition-transform ${isOpen ? "" : "-rotate-90"}`}
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
   );
 }
 

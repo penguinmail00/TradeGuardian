@@ -167,6 +167,23 @@ export const trades: Trade[] = [
     hasBuyerSettled: false,
     createdAt: new Date("2026-09-03T08:15:00Z"),
   },
+  {
+    escrow: "0x36D2Af5eD051F4b3AAb650c5B0B2f33966571d10",
+    transactionHash: "0xa1ed03f6d27bcc9bd779ce1d8092533a4c5f508c9ca62acfd39bb7c4447e8586",
+    itemName: "Retro arcade stick",
+    description:
+      "Full-size stick with Sanwa buttons and a USB-C cable. A few scuffs on the base plate.",
+    // The other party, the seller, deposited and then canceled.
+    seller: "0x5F4d6CC8c6b6271176b8BE5005f85488A54CDc57",
+    buyer: currentUser,
+    itemPrice: parseEther("0.45"),
+    state: "TRADE_CANCELED",
+    hasSellerDeposited: true,
+    hasBuyerDeposited: false,
+    hasSellerSettled: false,
+    hasBuyerSettled: false,
+    createdAt: new Date("2026-08-28T19:40:00Z"),
+  },
 ];
 
 // Archiving is per user and off-chain. Until there is a database this lives in

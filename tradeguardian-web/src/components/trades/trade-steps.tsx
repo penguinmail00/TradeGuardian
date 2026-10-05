@@ -12,8 +12,9 @@ import {
   canConfirmReceipt,
   canMarkDelivered,
   canSettle,
+  getCanceledBy,
+  getCompletedPayout,
   getDeposit,
-  getStepDescription,
   getTradeSteps,
   needsDeposit,
   tradeSteps,
@@ -21,11 +22,9 @@ import {
 } from "@/lib/trades";
 
 /**
- * The trade's four steps, rendered by MUI's Stepper. The step the trade's
- * status belongs to gets an info button with that status's description. The
- * Create Trade step lists the trade's details, the deposits step who has
- * deposited, the delivery step its progress, and the return step the
- * settlement after a wrong-item report.
+ * The trade's four steps, rendered by MUI's Stepper. The Create Trade step
+ * lists the trade's details, the deposits step who has deposited, the
+ * delivery step its progress, and the return step the settlement or payout.
  */
 export function TradeSteps({ trade }: { trade: Trade }) {
   const statuses = getTradeSteps(trade);
@@ -35,7 +34,6 @@ export function TradeSteps({ trade }: { trade: Trade }) {
       steps={tradeSteps.map((step, index) => ({
         label: step.label,
         status: statuses[index],
-        description: getStepDescription(step, trade),
         content:
           index === 0 ? (
             <CreationDetails trade={trade} />
@@ -52,11 +50,12 @@ export function TradeSteps({ trade }: { trade: Trade }) {
 }
 
 /**
- * Under the Create Trade step: the escrow, the transaction that created it,
- * the user's role in the trade, both parties' wallets, when it was created,
- * and the item. Labels sit above their values on phones; from `sm` up, each
- * pair shares a row of a two-column grid, so both values start at the same
- * edge.
+ * Under the Create Trade step, from what people look for most to what they
+ * check least: the item (name, price, description), who's involved (the
+ * user's role, then their wallet and the other party's), then the on-chain
+ * record (when it was created, the escrow, and the transaction that created
+ * it). Labels sit above their values on phones; from `sm` up, each pair
+ * shares a row of a two-column grid, so both values start at the same edge.
  */
 function CreationDetails({ trade }: { trade: Trade }) {
   const isSeller = trade.seller === currentUser;
@@ -70,22 +69,18 @@ function CreationDetails({ trade }: { trade: Trade }) {
     // single-line transaction ID shorten or wrap instead of overflowing it.
     <dl className="type-small grid grid-cols-[minmax(0,1fr)] gap-2 sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-x-4">
       <div className="sm:contents">
-        <dt className="text-muted sm:self-center">Contract Address</dt>
-        <dd className="min-w-0">
-          <AddressValue
-            address={trade.escrow}
-            copyLabel="Copy contract address"
-          />
-        </dd>
+        <dt className="text-muted">Item name</dt>
+        <dd className="min-w-0 break-words">{trade.itemName}</dd>
       </div>
       <div className="sm:contents">
-        <dt className="text-muted sm:self-center">Transaction ID</dt>
-        <dd className="min-w-0">
-          <AddressValue
-            address={trade.transactionHash}
-            copyLabel="Copy transaction ID"
-            isSingleLine
-          />
+        <dt className="text-muted">Item price</dt>
+        <dd>{formatEther(trade.itemPrice)} MON</dd>
+      </div>
+      <div className="sm:contents">
+        <dt className="text-muted">Description</dt>
+        {/* Free text from the trade's creator; keep its line breaks. */}
+        <dd className="min-w-0 break-words whitespace-pre-line text-pretty">
+          {trade.description}
         </dd>
       </div>
       <div className="sm:contents">
@@ -118,18 +113,22 @@ function CreationDetails({ trade }: { trade: Trade }) {
         </dd>
       </div>
       <div className="sm:contents">
-        <dt className="text-muted">Item price</dt>
-        <dd>{formatEther(trade.itemPrice)} MON</dd>
+        <dt className="text-muted sm:self-center">Contract Address</dt>
+        <dd className="min-w-0">
+          <AddressValue
+            address={trade.escrow}
+            copyLabel="Copy contract address"
+          />
+        </dd>
       </div>
       <div className="sm:contents">
-        <dt className="text-muted">Item name</dt>
-        <dd className="min-w-0 break-words">{trade.itemName}</dd>
-      </div>
-      <div className="sm:contents">
-        <dt className="text-muted">Description</dt>
-        {/* Free text from the trade's creator; keep its line breaks. */}
-        <dd className="min-w-0 break-words whitespace-pre-line text-pretty">
-          {trade.description}
+        <dt className="text-muted sm:self-center">Transaction ID</dt>
+        <dd className="min-w-0">
+          <AddressValue
+            address={trade.transactionHash}
+            copyLabel="Copy transaction ID"
+            isSingleLine
+          />
         </dd>
       </div>
     </dl>
@@ -138,13 +137,14 @@ function CreationDetails({ trade }: { trade: Trade }) {
 
 /**
  * Under the deposits step, at every status: whether each side has deposited,
- * and how much. While the trade awaits deposits it also has the deposit
- * button on your turn, or the cancel button once the deposit window has
- * closed.
+ * and how much, and on a canceled trade, which side canceled it. While the
+ * trade awaits deposits it also has the deposit button on your turn, or the
+ * cancel button once the deposit window has closed.
  */
 function DepositDetails({ trade }: { trade: Trade }) {
   const isSeller = trade.seller === currentUser;
   const deposit = getDeposit(trade, isSeller);
+  const canceledBy = getCanceledBy(trade);
 
   return (
     <div className="flex flex-col gap-4">
@@ -159,6 +159,11 @@ function DepositDetails({ trade }: { trade: Trade }) {
             ? `Buyer has deposited ${formatEther(getDeposit(trade, false))} MON`
             : "Buyer has not deposited funds"}
         </ChecklistItem>
+        {canceledBy && (
+          <ChecklistItem isDone={false} isFailed>
+            {canceledBy} has canceled the trade.
+          </ChecklistItem>
+        )}
       </ul>
       {needsDeposit(trade, isSeller) && (
         <EscrowActionButton
@@ -282,10 +287,11 @@ function getDeliveryContent(trade: Trade) {
 /**
  * Under the return step after an incorrect-item report: whether each side has
  * settled, since the deposits are returned once both have, with the Settle
- * button until your side has. Once settled, both sides have. Other statuses
- * get no content.
+ * button until your side has. Once settled, both sides have. Once completed,
+ * where the escrow's funds went. Other statuses get no content.
  */
 function getReturnContent(trade: Trade) {
+  if (trade.state === "ITEM_RECEIVED") return <CompletedPayout trade={trade} />;
   if (trade.state !== "ITEM_INCORRECT" && trade.state !== "SETTLED")
     return undefined;
 
@@ -321,6 +327,29 @@ function getReturnContent(trade: Trade) {
         />
       )}
     </div>
+  );
+}
+
+/**
+ * Where the escrow's funds went once the buyer confirmed the item: the price
+ * paid to the seller, then each side's deposit back, net of its half of the
+ * fee.
+ */
+function CompletedPayout({ trade }: { trade: Trade }) {
+  const payout = getCompletedPayout(trade);
+
+  return (
+    <ul aria-label="Payout" className="flex flex-col gap-1.5">
+      <ChecklistItem isDone>
+        Buyer paid {formatEther(payout.paidToSeller)} MON to seller
+      </ChecklistItem>
+      <ChecklistItem isDone>
+        {formatEther(payout.returnedToSeller)} MON returned to seller
+      </ChecklistItem>
+      <ChecklistItem isDone>
+        {formatEther(payout.returnedToBuyer)} MON returned to buyer
+      </ChecklistItem>
+    </ul>
   );
 }
 

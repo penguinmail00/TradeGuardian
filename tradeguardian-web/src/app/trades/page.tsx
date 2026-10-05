@@ -34,15 +34,15 @@ function tradesHref({ view, sortOrder, search }: ListParams) {
 }
 
 /**
- * Case-insensitive partial match on the full transaction ID, contract address
- * or counterparty address, so a pasted value or just its first few characters
- * both work.
+ * Case-insensitive partial match on the item name, full transaction ID,
+ * contract address or counterparty address, so a word from the name, a pasted
+ * value or just its first few characters all work.
  */
 function matchesSearch(trade: Trade, search: string) {
   if (!search) return true;
   const needle = search.toLowerCase();
   const counterparty = trade.seller === currentUser ? trade.buyer : trade.seller;
-  return [trade.transactionHash, trade.escrow, counterparty].some((value) =>
+  return [trade.itemName, trade.transactionHash, trade.escrow, counterparty].some((value) =>
     value.toLowerCase().includes(needle),
   );
 }
@@ -50,7 +50,7 @@ function matchesSearch(trade: Trade, search: string) {
 /**
  * Lists the connected wallet's trades in two tabs, unarchived and archived
  * (`?view=archived`), sorted by creation date (`?sort=oldest`, newest by
- * default) and filtered by address (`?q=`). Rendered entirely on the server.
+ * default) and filtered by item name or address (`?q=`). Rendered entirely on the server.
  */
 export default async function MyTradesPage({ searchParams }: PageProps<"/trades">) {
   const { sort, view, q } = await searchParams;
@@ -182,7 +182,7 @@ function SearchForm({ params }: { params: ListParams }) {
       {params.view === "archived" && <input type="hidden" name="view" value="archived" />}
       {params.sortOrder === "oldest" && <input type="hidden" name="sort" value="oldest" />}
       <label htmlFor="trade-search" className="sr-only">
-        Search by transaction ID, contract address or counterparty
+        Search by item name, transaction ID, contract address or counterparty
       </label>
       <div className="relative">
         <svg
@@ -203,7 +203,7 @@ function SearchForm({ params }: { params: ListParams }) {
           type="search"
           name="q"
           defaultValue={params.search}
-          placeholder="Search for transaction or address"
+          placeholder="Search for item, transaction ID, or address"
           autoComplete="off"
           spellCheck={false}
           className="field pl-10 font-mono placeholder:font-sans lg:min-h-0 lg:border-transparent lg:py-[7px]"
@@ -226,10 +226,14 @@ function TradeList({
     <>
       {/* Rows are links, so this is a subgrid list rather than a table: each
           row spans every column and shares the panel's tracks. From md up,
-          columns fit their content and the spare width goes between them. */}
+          columns fit their content and the spare width goes between them.
+          Columns run from what people scan for (which trade, and whether it
+          needs them) to what they check least, with the price on the right
+          edge for comparing amounts: Item, Status, Age, Counterparty, Price.
+          Tablets drop Age, and phones keep only Item and Status. */}
       <div className="panel type-small grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 md:grid-cols-[repeat(4,auto)] md:justify-between md:gap-x-6 lg:grid-cols-[repeat(5,auto)] lg:gap-x-8">
         <div className="col-span-full grid grid-cols-subgrid border-b border-border px-4 py-3 font-medium text-muted lg:px-6">
-          <span>Transaction ID</span>
+          <span>Item</span>
           <span className="text-right md:text-left">Status</span>
           <SortLink params={params} className="hidden lg:flex">
             Age
@@ -318,23 +322,20 @@ function TradeRow({ trade, serverNow }: { trade: Trade; serverNow: number }) {
   const counterparty = isSeller ? trade.buyer : trade.seller;
   const price = `${formatEther(trade.itemPrice)} MON`;
 
-  // The ID link stretches over the whole row (`after:inset-0`) so any part of
-  // the row opens the trade; the copy buttons sit above it, since a button
-  // can't be nested inside a link.
+  // The item name link stretches over the whole row (`after:inset-0`) so any
+  // part of the row opens the trade; the counterparty's copy button sits above
+  // it, since a button can't be nested inside a link.
   return (
     <div className="relative col-span-full grid grid-cols-subgrid items-center px-4 py-4 transition-colors hover:bg-input has-[a:focus-visible]:bg-input lg:px-6">
-      {/* Phones have no Price column, so the price sits under the ID. */}
+      {/* Phones have no Price column, so the price sits under the item
+          name. */}
       <span className="min-w-0">
-        <span className="flex items-center gap-1">
-          <Link href={`/trades/${trade.escrow}`} className="font-mono after:absolute after:inset-0">
-            {shortenAddress(trade.transactionHash)}
-          </Link>
-          <CopyButton
-            value={trade.transactionHash}
-            label="Copy transaction ID"
-            className="relative -my-2"
-          />
-        </span>
+        <Link
+          href={`/trades/${trade.escrow}`}
+          className="block truncate font-medium after:absolute after:inset-0 md:max-w-[28ch]"
+        >
+          {trade.itemName}
+        </Link>
         <span className="block text-muted md:hidden">{price}</span>
       </span>
       <span className="text-right md:text-left">
