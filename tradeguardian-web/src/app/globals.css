@@ -15,6 +15,8 @@
   --input: #171a1f;
   --foreground: #ffffff;
   --muted: #b5bdc2;
+  /* Fainter than --muted, so a field's placeholder can't pass for typed text. */
+  --placeholder: #7a828a;
   --border: #2b2e36;
   --border-footer: #293139;
   --nav-icon: #677897;
@@ -345,7 +347,7 @@
     transition: border-color 150ms ease;
 
     &::placeholder {
-      color: var(--muted);
+      color: var(--placeholder);
     }
 
     /* No focus highlight by design; the text cursor marks the active field. */

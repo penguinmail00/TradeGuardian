@@ -14,6 +14,7 @@ export type Trade = {
   escrow: Address;
   /** Hash of the transaction that created the escrow. */
   transactionHash: Hash;
+  /** Empty when the creator left it blank. */
   itemName: string;
   /** Free text from the trade's creator; may contain line breaks. */
   description: string;
@@ -248,6 +249,9 @@ export function canSettle(trade: Trade, isSeller: boolean) {
   if (trade.state !== "ITEM_INCORRECT") return false;
   return isSeller ? !trade.hasSellerSettled : !trade.hasBuyerSettled;
 }
+
+/** Shown in place of the item name, which is optional when creating a trade. */
+export const untitledTradeName = "Untitled trade";
 
 /** `0x5B38…ddC4`. Also used for transaction hashes. */
 export function shortenAddress(address: Address | Hash) {

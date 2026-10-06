@@ -10,9 +10,11 @@ const walletConnectProjectId = z
   .min(1)
   .parse(process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID);
 
-// The testnet uses a gray Monad logo so it is easy to tell apart from mainnet.
+// The testnet uses a gray Monad logo and the tMON symbol so it is easy to
+// tell apart from mainnet.
 const monadTestnet = {
   ...viemMonadTestnet,
+  nativeCurrency: { ...viemMonadTestnet.nativeCurrency, symbol: "tMON" },
   iconUrl: "/images/chains/monad-testnet.svg",
   iconBackground: "transparent",
 };

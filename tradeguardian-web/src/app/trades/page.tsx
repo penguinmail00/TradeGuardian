@@ -10,7 +10,7 @@ import { TradeStatusBadge } from "@/components/trades/trade-status-badge";
 import { TradeTimeCell } from "@/components/trades/trade-time";
 import { currentUser, isArchived, trades } from "@/lib/fake-trades";
 import { getRequestTime } from "@/lib/request-time";
-import { shortenAddress, type Trade } from "@/lib/trades";
+import { shortenAddress, untitledTradeName, type Trade } from "@/lib/trades";
 
 export const metadata: Metadata = {
   title: "My Trades | TradeGuardian",
@@ -127,7 +127,7 @@ function TradesIntro() {
         <div>
           <h1 className="type-h1 text-balance">My trades</h1>
         </div>
-        <AddTradeLink />
+        <TradeActions />
       </div>
     </section>
   );
@@ -229,7 +229,7 @@ function TradeList({
           columns fit their content and the spare width goes between them.
           Columns run from what people scan for (which trade, and whether it
           needs them) to what they check least, with the price on the right
-          edge for comparing amounts: Item, Status, Age, Counterparty, Price.
+          edge for comparing amounts: Item, Status, Age, Counterparty, Item price.
           Tablets drop Age, and phones keep only Item and Status. */}
       <div className="panel type-small grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 md:grid-cols-[repeat(4,auto)] md:justify-between md:gap-x-6 lg:grid-cols-[repeat(5,auto)] lg:gap-x-8">
         <div className="col-span-full grid grid-cols-subgrid border-b border-border px-4 py-3 font-medium text-muted lg:px-6">
@@ -239,7 +239,7 @@ function TradeList({
             Age
           </SortLink>
           <span className="hidden md:block">Counterparty</span>
-          <span className="hidden text-right md:block">Price</span>
+          <span className="hidden text-right md:block">Item price</span>
         </div>
         <ul className="col-span-full grid grid-cols-subgrid divide-y divide-border">
           {trades.map((trade) => (
@@ -304,16 +304,22 @@ function NoTrades({ hasArchivedTrades }: { hasArchivedTrades: boolean }) {
           Start a trade and invite the other side with its escrow address.
         </p>
       </div>
-      <AddTradeLink />
+      <TradeActions />
     </div>
   );
 }
 
-function AddTradeLink() {
+/** Create a new trade, or add one the other side created. Stacked on phones, Create on top. */
+function TradeActions() {
   return (
-    <Link href="/trades/new" className="btn btn-primary w-full shrink-0 sm:w-auto">
-      Add a trade
-    </Link>
+    <div className="flex w-full shrink-0 flex-col gap-3 sm:w-auto sm:flex-row">
+      <Link href="/trades/create" className="btn btn-primary w-full sm:w-auto">
+        Create a trade
+      </Link>
+      <Link href="/trades/new" className="btn btn-secondary w-full sm:w-auto">
+        Add a trade
+      </Link>
+    </div>
   );
 }
 
@@ -327,14 +333,16 @@ function TradeRow({ trade, serverNow }: { trade: Trade; serverNow: number }) {
   // it, since a button can't be nested inside a link.
   return (
     <div className="relative col-span-full grid grid-cols-subgrid items-center px-4 py-4 transition-colors hover:bg-input has-[a:focus-visible]:bg-input lg:px-6">
-      {/* Phones have no Price column, so the price sits under the item
+      {/* Phones have no Item price column, so the price sits under the item
           name. */}
       <span className="min-w-0">
         <Link
           href={`/trades/${trade.escrow}`}
-          className="block truncate font-medium after:absolute after:inset-0 md:max-w-[28ch]"
+          className={`block truncate font-medium after:absolute after:inset-0 md:max-w-[28ch] ${
+            trade.itemName ? "" : "text-muted"
+          }`}
         >
-          {trade.itemName}
+          {trade.itemName || untitledTradeName}
         </Link>
         <span className="block text-muted md:hidden">{price}</span>
       </span>

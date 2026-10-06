@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { SiteFooter } from "@/components/site-shell/site-footer";
 import { SiteHeader } from "@/components/site-shell/site-header";
+import { CreateTradeLink } from "@/components/trades/create-trade-link";
 import {
   TradeStepper,
   type TradeStep,
@@ -88,12 +89,9 @@ function Hero() {
           id="get-started"
           className="mt-12 flex flex-col gap-4 sm:flex-row"
         >
-          <Link
-            href="/signup"
-            className="btn btn-lg btn-primary w-full sm:w-auto"
-          >
-            Get started
-          </Link>
+          <CreateTradeLink className="btn btn-lg btn-primary w-full sm:w-auto">
+            Create a trade
+          </CreateTradeLink>
           <Link
             href="#features"
             className="btn btn-lg btn-secondary w-full sm:w-auto"

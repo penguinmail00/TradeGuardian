@@ -8,7 +8,7 @@ import { BackToTradesLink } from "@/components/trades/back-to-trades-link";
 import { TradeSteps } from "@/components/trades/trade-steps";
 import { explorerName, getExplorerAddressUrl } from "@/lib/explorer";
 import { findTrade, isArchived } from "@/lib/fake-trades";
-import { canArchive, tradeStatuses } from "@/lib/trades";
+import { canArchive, tradeStatuses, untitledTradeName } from "@/lib/trades";
 
 import { setTradeArchived } from "../actions";
 
@@ -23,7 +23,7 @@ export async function generateMetadata({
   if (!trade) return { title: "Trade not found | TradeGuardian" };
 
   return {
-    title: `${trade.itemName} | TradeGuardian`,
+    title: `${trade.itemName || untitledTradeName} | TradeGuardian`,
     description: tradeStatuses[trade.state].description,
   };
 }

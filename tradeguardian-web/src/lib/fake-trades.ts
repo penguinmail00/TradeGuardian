@@ -201,6 +201,14 @@ export function setArchived(trade: Trade, archived: boolean) {
   else archivedEscrows.delete(trade.escrow);
 }
 
+/**
+ * Adds a trade created on the site. Like archiving, it lives in server memory
+ * until there is a database. Does nothing if the escrow is already listed.
+ */
+export function addTrade(trade: Trade) {
+  if (!findTrade(trade.escrow)) trades.push(trade);
+}
+
 /** Looks up a trade by escrow address, ignoring checksum casing. */
 export function findTrade(escrow: string) {
   if (!isAddress(escrow)) return undefined;

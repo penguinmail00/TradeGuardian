@@ -57,6 +57,11 @@ export function TradeSteps({ trade }: { trade: Trade }) {
  * it). Labels sit above their values on phones; from `sm` up, each pair
  * shares a row of a two-column grid, so both values start at the same edge.
  */
+/** For an optional detail the trade's creator left blank. */
+function NotGiven() {
+  return <span className="text-muted">None</span>;
+}
+
 function CreationDetails({ trade }: { trade: Trade }) {
   const isSeller = trade.seller === currentUser;
   const seller = { side: "Seller", address: trade.seller };
@@ -70,7 +75,7 @@ function CreationDetails({ trade }: { trade: Trade }) {
     <dl className="type-small grid grid-cols-[minmax(0,1fr)] gap-2 sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-x-4">
       <div className="sm:contents">
         <dt className="text-muted">Item name</dt>
-        <dd className="min-w-0 break-words">{trade.itemName}</dd>
+        <dd className="min-w-0 break-words">{trade.itemName || <NotGiven />}</dd>
       </div>
       <div className="sm:contents">
         <dt className="text-muted">Item price</dt>
@@ -80,7 +85,7 @@ function CreationDetails({ trade }: { trade: Trade }) {
         <dt className="text-muted">Description</dt>
         {/* Free text from the trade's creator; keep its line breaks. */}
         <dd className="min-w-0 break-words whitespace-pre-line text-pretty">
-          {trade.description}
+          {trade.description || <NotGiven />}
         </dd>
       </div>
       <div className="sm:contents">
