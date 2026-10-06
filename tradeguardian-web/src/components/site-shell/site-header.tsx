@@ -25,6 +25,7 @@ const navItems: NavItem[] = [
     href: "/trades",
     requiresWallet: true,
     children: [
+      { label: "Create a trade", href: "/trades/create", icon: <FilePlusIcon /> },
       { label: "Add a trade", href: "/trades/new", icon: <PlusSquareIcon /> },
       {
         label: "Archived",
@@ -138,6 +139,25 @@ function PlusSquareIcon() {
     >
       <rect x="1.5" y="1.5" width="13" height="13" rx="1.5" />
       <path d="M8 4.75v6.5M4.75 8h6.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function FilePlusIcon() {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.2"
+      className="size-[15px]"
+      aria-hidden="true"
+    >
+      <path
+        d="M9.5 1.5H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V5L9.5 1.5Z"
+        strokeLinejoin="round"
+      />
+      <path d="M9.5 1.5V5H13M8 7.25v4.5M5.75 9.5h4.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
