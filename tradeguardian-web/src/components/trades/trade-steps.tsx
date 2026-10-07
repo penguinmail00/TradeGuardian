@@ -1,11 +1,10 @@
-import { formatEther } from "viem";
+import { formatEther, isAddressEqual, type Address } from "viem";
 
 import { AddressValue } from "@/components/trades/address-value";
 import { ChecklistItem } from "@/components/trades/checklist-item";
 import { EscrowActionButton } from "@/components/trades/escrow-action-button";
 import { TradeProgressStepper } from "@/components/trades/trade-progress-stepper";
 import { TradeTimestamp } from "@/components/trades/trade-time";
-import { currentUser } from "@/lib/fake-trades";
 import { getRequestTime } from "@/lib/request-time";
 import {
   canCancel,
@@ -15,19 +14,23 @@ import {
   getCanceledBy,
   getCompletedPayout,
   getDeposit,
+  getParty,
   getTradeSteps,
   needsDeposit,
   tradeSteps,
   type Trade,
+  type TradeParty,
 } from "@/lib/trades";
 
 /**
  * The trade's four steps, rendered by MUI's Stepper. The Create Trade step
  * lists the trade's details, the deposits step who has deposited, the
  * delivery step its progress, and the return step the settlement or payout.
+ * Actions are only offered to `account` when it's the seller or buyer.
  */
-export function TradeSteps({ trade }: { trade: Trade }) {
+export function TradeSteps({ trade, account }: { trade: Trade; account: Address | undefined }) {
   const statuses = getTradeSteps(trade);
+  const party = getParty(trade, account);
 
   return (
     <TradeProgressStepper
@@ -36,13 +39,13 @@ export function TradeSteps({ trade }: { trade: Trade }) {
         status: statuses[index],
         content:
           index === 0 ? (
-            <CreationDetails trade={trade} />
+            <CreationDetails trade={trade} account={account} party={party} />
           ) : step.states.includes("AWAITING_DEPOSIT") ? (
-            <DepositDetails trade={trade} />
+            <DepositDetails trade={trade} party={party} />
           ) : step.states.includes("AWAITING_DELIVERY") ? (
-            getDeliveryContent(trade)
+            getDeliveryContent(trade, party)
           ) : (
-            getReturnContent(trade)
+            getReturnContent(trade, party)
           ),
       }))}
     />
@@ -62,12 +65,19 @@ function NotGiven() {
   return <span className="text-muted">None</span>;
 }
 
-function CreationDetails({ trade }: { trade: Trade }) {
-  const isSeller = trade.seller === currentUser;
+function CreationDetails({
+  trade,
+  account,
+  party,
+}: {
+  trade: Trade;
+  account: Address | undefined;
+  party: TradeParty | undefined;
+}) {
   const seller = { side: "Seller", address: trade.seller };
   const buyer = { side: "Buyer", address: trade.buyer };
   // The user's own side first, right under their role.
-  const parties = isSeller ? [seller, buyer] : [buyer, seller];
+  const parties = party && !party.isSeller ? [buyer, seller] : [seller, buyer];
 
   return (
     // minmax(0, …) columns can't grow past the step, so long values like the
@@ -90,7 +100,15 @@ function CreationDetails({ trade }: { trade: Trade }) {
       </div>
       <div className="sm:contents">
         <dt className="text-muted sm:self-center">Your role</dt>
-        <dd>{isSeller ? "Seller" : "Buyer"}</dd>
+        <dd>
+          {party ? (
+            party.isSeller ? "Seller" : "Buyer"
+          ) : (
+            <span className="text-muted">
+              {account ? "Not part of this trade" : "Connect your wallet"}
+            </span>
+          )}
+        </dd>
       </div>
       {parties.map(({ side, address }) => (
         <div key={side} className="sm:contents">
@@ -99,7 +117,7 @@ function CreationDetails({ trade }: { trade: Trade }) {
             <AddressValue
               address={address}
               copyLabel={
-                address === currentUser
+                account && isAddressEqual(address, account)
                   ? undefined
                   : `Copy ${side.toLowerCase()} address`
               }
@@ -146,9 +164,7 @@ function CreationDetails({ trade }: { trade: Trade }) {
  * trade awaits deposits it also has the deposit button on your turn, or the
  * cancel button once the deposit window has closed.
  */
-function DepositDetails({ trade }: { trade: Trade }) {
-  const isSeller = trade.seller === currentUser;
-  const deposit = getDeposit(trade, isSeller);
+function DepositDetails({ trade, party }: { trade: Trade; party: TradeParty | undefined }) {
   const canceledBy = getCanceledBy(trade);
 
   return (
@@ -170,12 +186,12 @@ function DepositDetails({ trade }: { trade: Trade }) {
           </ChecklistItem>
         )}
       </ul>
-      {needsDeposit(trade, isSeller) && (
+      {party && needsDeposit(trade, party.isSeller) && (
         <EscrowActionButton
           escrow={trade.escrow}
-          account={currentUser}
-          functionName={isSeller ? "sellerDeposit" : "buyerDeposit"}
-          value={deposit}
+          account={party.account}
+          functionName={party.isSeller ? "sellerDeposit" : "buyerDeposit"}
+          value={getDeposit(trade, party.isSeller)}
           verb="deposit"
           label="Deposit"
           pendingLabel="Depositing…"
@@ -183,10 +199,10 @@ function DepositDetails({ trade }: { trade: Trade }) {
           align="start"
         />
       )}
-      {canCancel(trade, isSeller, getRequestTime()) && (
+      {party && canCancel(trade, party.isSeller, getRequestTime()) && (
         <EscrowActionButton
           escrow={trade.escrow}
-          account={currentUser}
+          account={party.account}
           functionName="withdraw"
           verb="cancel the trade"
           label="Cancel trade"
@@ -209,7 +225,7 @@ function DepositDetails({ trade }: { trade: Trade }) {
  * the buyer's line shows the report (its settlement is under the return
  * step). Other statuses get no content.
  */
-function getDeliveryContent(trade: Trade) {
+function getDeliveryContent(trade: Trade, party: TradeParty | undefined) {
   if (
     trade.state === "AWAITING_DELIVERY" ||
     trade.state === "ITEM_SENT" ||
@@ -242,10 +258,10 @@ function getDeliveryContent(trade: Trade) {
                 : "Buyer has not updated received status"}
           </ChecklistItem>
         </ul>
-        {canMarkDelivered(trade, trade.seller === currentUser) && (
+        {party && canMarkDelivered(trade, party.isSeller) && (
           <EscrowActionButton
             escrow={trade.escrow}
-            account={currentUser}
+            account={party.account}
             functionName="setSellerHasGivenItem"
             verb="mark the item delivered"
             label="Item delivered"
@@ -255,11 +271,11 @@ function getDeliveryContent(trade: Trade) {
             align="start"
           />
         )}
-        {canConfirmReceipt(trade, trade.seller === currentUser) && (
+        {party && canConfirmReceipt(trade, party.isSeller) && (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
             <EscrowActionButton
               escrow={trade.escrow}
-              account={currentUser}
+              account={party.account}
               functionName="setBuyerHasReceivedCorrectItem"
               verb="confirm you received the item"
               label="Item Received"
@@ -270,7 +286,7 @@ function getDeliveryContent(trade: Trade) {
             />
             <EscrowActionButton
               escrow={trade.escrow}
-              account={currentUser}
+              account={party.account}
               functionName="setBuyerHasReceivedIncorrectItem"
               verb="report the item as not received"
               label="Not Received"
@@ -295,7 +311,7 @@ function getDeliveryContent(trade: Trade) {
  * button until your side has. Once settled, both sides have. Once completed,
  * where the escrow's funds went. Other statuses get no content.
  */
-function getReturnContent(trade: Trade) {
+function getReturnContent(trade: Trade, party: TradeParty | undefined) {
   if (trade.state === "ITEM_RECEIVED") return <CompletedPayout trade={trade} />;
   if (trade.state !== "ITEM_INCORRECT" && trade.state !== "SETTLED")
     return undefined;
@@ -319,10 +335,10 @@ function getReturnContent(trade: Trade) {
             : "Buyer has not requested to settle"}
         </ChecklistItem>
       </ul>
-      {canSettle(trade, trade.seller === currentUser) && (
+      {party && canSettle(trade, party.isSeller) && (
         <EscrowActionButton
           escrow={trade.escrow}
-          account={currentUser}
+          account={party.account}
           functionName="settle"
           verb="settle"
           label="Settle"

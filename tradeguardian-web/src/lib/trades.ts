@@ -1,4 +1,4 @@
-import type { Address, Hash } from "viem";
+import { isAddressEqual, type Address, type Hash } from "viem";
 
 /** Mirrors `Escrow.EscrowState` in tradeguardian-contracts. */
 export type EscrowState =
@@ -142,6 +142,20 @@ export function canArchive(trade: Trade) {
     trade.state === "SETTLED" ||
     trade.state === "TRADE_CANCELED"
   );
+}
+
+/** The connected account's side of a trade. */
+export type TradeParty = { account: Address; isSeller: boolean };
+
+/**
+ * Which side of the trade `account` is on. Undefined when no wallet is
+ * connected or the account is neither the seller nor the buyer.
+ */
+export function getParty(trade: Trade, account: Address | undefined): TradeParty | undefined {
+  if (!account) return undefined;
+  if (isAddressEqual(account, trade.seller)) return { account, isSeller: true };
+  if (isAddressEqual(account, trade.buyer)) return { account, isSeller: false };
+  return undefined;
 }
 
 /** Sellers deposit 1x the item price; buyers deposit 2x. */

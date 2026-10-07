@@ -1,25 +1,35 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import type { Address } from "viem";
 
 import { SiteFooter } from "@/components/site-shell/site-footer";
 import { SiteHeader } from "@/components/site-shell/site-header";
 import { BackToTradesLink } from "@/components/trades/back-to-trades-link";
 import { TradeSteps } from "@/components/trades/trade-steps";
+import { getConnectedAccount } from "@/lib/connected-account";
+import { syncTradeFromChain } from "@/lib/escrow-sync";
 import { explorerName, getExplorerAddressUrl } from "@/lib/explorer";
 import { findTrade, isArchived } from "@/lib/fake-trades";
 import { canArchive, tradeStatuses, untitledTradeName } from "@/lib/trades";
 
 import { setTradeArchived } from "../actions";
 
-// Archived status is per user, so the page can't be prerendered and shared.
+// Archived status and the connected wallet are per user, so the page can't be
+// prerendered and shared.
 export const dynamic = "force-dynamic";
+
+/** The trade with its escrow's current state, read once per request. */
+const getTrade = cache(async (address: string) => {
+  const trade = findTrade(address);
+  return trade && syncTradeFromChain(trade);
+});
 
 export async function generateMetadata({
   params,
 }: PageProps<"/trades/[address]">): Promise<Metadata> {
   const { address } = await params;
-  const trade = findTrade(address);
+  const trade = await getTrade(address);
   if (!trade) return { title: "Trade not found | TradeGuardian" };
 
   return {
@@ -34,7 +44,7 @@ export async function generateMetadata({
  */
 export default async function TradePage({ params }: PageProps<"/trades/[address]">) {
   const { address } = await params;
-  const trade = findTrade(address);
+  const [trade, account] = await Promise.all([getTrade(address), getConnectedAccount()]);
   if (!trade) notFound();
 
   return (
@@ -57,7 +67,7 @@ export default async function TradePage({ params }: PageProps<"/trades/[address]
               </a>
             </div>
             <div className="panel mt-10 px-5 py-6 lg:px-6">
-              <TradeSteps trade={trade} />
+              <TradeSteps trade={trade} account={account} />
             </div>
 
             {canArchive(trade) && <ArchiveForm escrow={trade.escrow} isArchived={isArchived(trade)} />}

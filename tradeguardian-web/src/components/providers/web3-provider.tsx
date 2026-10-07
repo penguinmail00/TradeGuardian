@@ -6,6 +6,8 @@ import { darkTheme, RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { WagmiProvider } from "wagmi";
+
+import { AccountChangeHandler } from "@/components/wallet/account-change-handler";
 import { wagmiConfig } from "@/lib/wagmi-config";
 
 // Matches the --accent / --on-accent design tokens in globals.css.
@@ -24,6 +26,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
 
   return (
     <WagmiProvider config={wagmiConfig}>
+      <AccountChangeHandler />
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider theme={rainbowTheme} modalSize="compact">
           {children}

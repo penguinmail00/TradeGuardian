@@ -1,4 +1,5 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
+import { cookieStorage, createStorage } from "wagmi";
 import { monad as viemMonad, monadTestnet as viemMonadTestnet } from "wagmi/chains";
 import { z } from "zod";
 
@@ -31,4 +32,7 @@ export const wagmiConfig = getDefaultConfig({
   projectId: walletConnectProjectId,
   chains: [monadTestnet, monad],
   ssr: true,
+  // In a cookie rather than localStorage, so server components can tell
+  // which wallet is connected (see `getConnectedAccount`).
+  storage: createStorage({ storage: cookieStorage }),
 });

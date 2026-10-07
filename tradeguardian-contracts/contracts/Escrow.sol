@@ -23,8 +23,8 @@ contract Escrow is Initializable, ReentrancyGuard {
     uint256 public itemPrice;
     uint256 public contractCreationDate;
     uint256 public deadlineForInitialDeposits;
-    bool private hasSellerSettled;
-    bool private hasBuyerSettled;
+    bool public hasSellerSettled;
+    bool public hasBuyerSettled;
 
     enum EscrowState {
         AWAITING_DEPOSIT,

@@ -46,6 +46,21 @@ describe("Settle", function () {
             .to.be.revertedWith("Invalid state for settlement");
     });
 
+    it("Should record each side's settlement in hasSellerSettled and hasBuyerSettled", async function () {
+        const { escrow, buyer, seller } = await loadFixture(deployEscrowInItemIncorrectState);
+
+        expect(await escrow.hasSellerSettled()).to.equal(false);
+        expect(await escrow.hasBuyerSettled()).to.equal(false);
+
+        await escrow.connect(buyer).settle();
+        expect(await escrow.hasSellerSettled()).to.equal(false);
+        expect(await escrow.hasBuyerSettled()).to.equal(true);
+
+        await escrow.connect(seller).settle();
+        expect(await escrow.hasSellerSettled()).to.equal(true);
+        expect(await escrow.hasBuyerSettled()).to.equal(true);
+    });
+
     it("Should not pay out or change state when only the buyer has settled", async function () {
         const { escrow, buyer, seller, itemPrice } = await loadFixture(deployEscrowInItemIncorrectState);
 

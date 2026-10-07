@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { formatEther } from "viem";
+import { formatEther, isAddressEqual, type Address } from "viem";
 
 import { SiteFooter } from "@/components/site-shell/site-footer";
 import { SiteHeader } from "@/components/site-shell/site-header";
 import { CopyButton } from "@/components/trades/copy-button";
 import { TradeStatusBadge } from "@/components/trades/trade-status-badge";
 import { TradeTimeCell } from "@/components/trades/trade-time";
-import { currentUser, isArchived, trades } from "@/lib/fake-trades";
+import { getConnectedAccount } from "@/lib/connected-account";
+import { syncTradeFromChain } from "@/lib/escrow-sync";
+import { isArchived, trades } from "@/lib/fake-trades";
 import { getRequestTime } from "@/lib/request-time";
-import { shortenAddress, untitledTradeName, type Trade } from "@/lib/trades";
+import { getParty, shortenAddress, untitledTradeName, type Trade } from "@/lib/trades";
 
 export const metadata: Metadata = {
   title: "My Trades | TradeGuardian",
@@ -38,17 +40,17 @@ function tradesHref({ view, sortOrder, search }: ListParams) {
  * contract address or counterparty address, so a word from the name, a pasted
  * value or just its first few characters all work.
  */
-function matchesSearch(trade: Trade, search: string) {
+function matchesSearch(trade: Trade, account: Address, search: string) {
   if (!search) return true;
   const needle = search.toLowerCase();
-  const counterparty = trade.seller === currentUser ? trade.buyer : trade.seller;
+  const counterparty = getCounterparty(trade, account);
   return [trade.itemName, trade.transactionHash, trade.escrow, counterparty].some((value) =>
     value.toLowerCase().includes(needle),
   );
 }
 
 /**
- * Lists the connected wallet's trades in two tabs, unarchived and archived
+ * Lists the connected wallet's trades (where it's the seller or buyer) in two tabs, unarchived and archived
  * (`?view=archived`), sorted by creation date (`?sort=oldest`, newest by
  * default) and filtered by item name or address (`?q=`). Rendered entirely on the server.
  */
@@ -59,8 +61,12 @@ export default async function MyTradesPage({ searchParams }: PageProps<"/trades"
     sortOrder: sort === "oldest" ? "oldest" : "newest",
     search: typeof q === "string" ? q.trim() : "",
   };
-  const sortedTrades = trades
-    .filter((trade) => matchesSearch(trade, params.search))
+  const account = await getConnectedAccount();
+  const myTrades = account ? trades.filter((trade) => getParty(trade, account)) : [];
+  // So each status badge shows the escrow's current state.
+  await Promise.all(myTrades.map(syncTradeFromChain));
+  const sortedTrades = myTrades
+    .filter((trade) => account && matchesSearch(trade, account, params.search))
     .toSorted((a, b) =>
     params.sortOrder === "newest"
       ? b.createdAt.getTime() - a.createdAt.getTime()
@@ -95,8 +101,10 @@ export default async function MyTradesPage({ searchParams }: PageProps<"/trades"
             </div>
             <SearchForm params={params} />
           </div>
-          {shownTrades.length > 0 ? (
-            <TradeList trades={shownTrades} params={params} serverNow={serverNow} />
+          {!account ? (
+            <p className="type-body text-muted">Connect your wallet to see your trades.</p>
+          ) : shownTrades.length > 0 ? (
+            <TradeList trades={shownTrades} account={account} params={params} serverNow={serverNow} />
           ) : params.search ? (
             <p className="type-body text-muted">
               No trades match “{params.search}”.{" "}
@@ -111,7 +119,9 @@ export default async function MyTradesPage({ searchParams }: PageProps<"/trades"
           ) : params.view === "archived" ? (
             <p className="type-body text-muted">No archived trades.</p>
           ) : (
-            <NoTrades hasArchivedTrades={archivedTrades.length > 0} />
+            <p className="type-body text-muted">
+              {archivedTrades.length > 0 ? "All your trades are archived." : "You don’t have any trades yet. Create a trade or add one someone shared with you."}
+            </p>
           )}
         </div>
       </main>
@@ -215,10 +225,12 @@ function SearchForm({ params }: { params: ListParams }) {
 
 function TradeList({
   trades,
+  account,
   params,
   serverNow,
 }: {
   trades: Trade[];
+  account: Address;
   params: ListParams;
   serverNow: number;
 }) {
@@ -244,7 +256,7 @@ function TradeList({
         <ul className="col-span-full grid grid-cols-subgrid divide-y divide-border">
           {trades.map((trade) => (
             <li key={trade.escrow} className="col-span-full grid grid-cols-subgrid">
-              <TradeRow trade={trade} serverNow={serverNow} />
+              <TradeRow trade={trade} account={account} serverNow={serverNow} />
             </li>
           ))}
         </ul>
@@ -293,22 +305,6 @@ function SortLink({
   );
 }
 
-function NoTrades({ hasArchivedTrades }: { hasArchivedTrades: boolean }) {
-  return (
-    <div className="panel flex flex-col items-start gap-4 p-6 sm:flex-row sm:items-center sm:justify-between lg:p-8">
-      <div>
-        <h2 className="type-h3">
-          {hasArchivedTrades ? "All your trades are archived" : "No trades yet"}
-        </h2>
-        <p className="type-body mt-2 text-muted">
-          Start a trade and invite the other side with its escrow address.
-        </p>
-      </div>
-      <TradeActions />
-    </div>
-  );
-}
-
 /** Create a new trade, or add one the other side created. Stacked on phones, Create on top. */
 function TradeActions() {
   return (
@@ -323,9 +319,14 @@ function TradeActions() {
   );
 }
 
-function TradeRow({ trade, serverNow }: { trade: Trade; serverNow: number }) {
-  const isSeller = trade.seller === currentUser;
-  const counterparty = isSeller ? trade.buyer : trade.seller;
+/** The other side of one of `account`'s trades. */
+function getCounterparty(trade: Trade, account: Address) {
+  return isAddressEqual(trade.seller, account) ? trade.buyer : trade.seller;
+}
+
+function TradeRow({ trade, account, serverNow }: { trade: Trade; account: Address; serverNow: number }) {
+  const isSeller = isAddressEqual(trade.seller, account);
+  const counterparty = getCounterparty(trade, account);
   const price = `${formatEther(trade.itemPrice)} MON`;
 
   // The item name link stretches over the whole row (`after:inset-0`) so any

@@ -3,8 +3,8 @@ import { isAddress, isAddressEqual, parseEther, type Address } from "viem";
 import type { Trade } from "@/lib/trades";
 
 // Placeholder data until trades are read from the factory's EscrowCreated logs
-// for the connected wallet.
-export const currentUser: Address = "0x98ccB132FfeAf4E8C6D328211BAD57413AbaB84A";
+// for the connected wallet. These only show for this wallet.
+const placeholderUser: Address = "0x98ccB132FfeAf4E8C6D328211BAD57413AbaB84A";
 
 export const trades: Trade[] = [
   {
@@ -14,7 +14,7 @@ export const trades: Trade[] = [
     description:
       "Carbon frame with a full 11-speed groupset. New tires and chain this summer; collection only.",
     seller: "0x6297CBDA4aC80584C02CACC31669Ae8f844Aa8EA",
-    buyer: currentUser,
+    buyer: placeholderUser,
     itemPrice: parseEther("0.8"),
     state: "AWAITING_DEPOSIT",
     hasSellerDeposited: false,
@@ -29,7 +29,7 @@ export const trades: Trade[] = [
     itemName: "Vintage instant camera",
     description:
       "Fully working and recently serviced. Comes with the original leather case and one unopened pack of film.",
-    seller: currentUser,
+    seller: placeholderUser,
     buyer: "0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2",
     itemPrice: parseEther("0.25"),
     state: "AWAITING_DEPOSIT",
@@ -46,7 +46,7 @@ export const trades: Trade[] = [
     description:
       "White model, lightly used. Includes the dock, both controllers, charger and original box.",
     seller: "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db",
-    buyer: currentUser,
+    buyer: placeholderUser,
     itemPrice: parseEther("1.2"),
     state: "ITEM_SENT",
     hasSellerDeposited: true,
@@ -61,7 +61,7 @@ export const trades: Trade[] = [
     itemName: "Signed first-edition paperback",
     description:
       "Signed by the author on the title page. Minor shelf wear on the spine, pages are clean.",
-    seller: currentUser,
+    seller: placeholderUser,
     buyer: "0x78731D3Ca6b7E34aC0F824c42a7cC18A495cabaB",
     itemPrice: parseEther("0.075"),
     state: "AWAITING_DELIVERY",
@@ -77,7 +77,7 @@ export const trades: Trade[] = [
     itemName: "Swiss automatic dive watch",
     description:
       "Unworn, full set with box and papers dated 2024. Black dial, 41mm steel case.",
-    seller: currentUser,
+    seller: placeholderUser,
     buyer: "0x617F2E2fD72FD9D5503197092aC168c91465E7f2",
     itemPrice: parseEther("3"),
     state: "ITEM_INCORRECT",
@@ -93,7 +93,7 @@ export const trades: Trade[] = [
     itemName: "Noise-cancelling headphones",
     description:
       "Over-ear, black. Barely used, with the carrying case and charging cable.",
-    seller: currentUser,
+    seller: placeholderUser,
     buyer: "0x28438014db95BdB8254bB3F5ffE9B888b5D5c9b5",
     itemPrice: parseEther("0.35"),
     state: "ITEM_INCORRECT",
@@ -109,7 +109,7 @@ export const trades: Trade[] = [
     itemName: "Mechanical keyboard",
     description:
       "75% layout with brown switches and an aluminium case. Includes a spare keycap set.",
-    seller: currentUser,
+    seller: placeholderUser,
     buyer: "0x17F6AD8Ef982297579C203069C1DbfFE4348c372",
     itemPrice: parseEther("0.5"),
     state: "ITEM_RECEIVED",
@@ -126,7 +126,7 @@ export const trades: Trade[] = [
     description:
       "Full-grain brown leather with brass buckles. Fits a 15-inch laptop.",
     seller: "0x612C911a896D0E6Fb60D70b32d195647d0Ed3e89",
-    buyer: currentUser,
+    buyer: placeholderUser,
     itemPrice: parseEther("0.4"),
     state: "SETTLED",
     hasSellerDeposited: true,
@@ -142,7 +142,7 @@ export const trades: Trade[] = [
     description:
       "35mm f/1.8 prime with front and rear caps and the original hood. No scratches on the glass.",
     seller: "0xd8b0C23d94E99994f37B5E565715dC17D654ac87",
-    buyer: currentUser,
+    buyer: placeholderUser,
     itemPrice: parseEther("0.6"),
     state: "SETTLED",
     hasSellerDeposited: true,
@@ -158,7 +158,7 @@ export const trades: Trade[] = [
     description:
       "Two floor tickets for the Saturday show, transferred through the official ticketing app.",
     seller: "0x03C6FcED478cBbC9a4FAB34eF9f40767739D1Ff7",
-    buyer: currentUser,
+    buyer: placeholderUser,
     itemPrice: parseEther("0.9"),
     state: "TRADE_CANCELED",
     hasSellerDeposited: false,
@@ -175,7 +175,7 @@ export const trades: Trade[] = [
       "Full-size stick with Sanwa buttons and a USB-C cable. A few scuffs on the base plate.",
     // The other party, the seller, deposited and then canceled.
     seller: "0x5F4d6CC8c6b6271176b8BE5005f85488A54CDc57",
-    buyer: currentUser,
+    buyer: placeholderUser,
     itemPrice: parseEther("0.45"),
     state: "TRADE_CANCELED",
     hasSellerDeposited: true,
