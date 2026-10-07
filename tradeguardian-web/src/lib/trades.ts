@@ -76,11 +76,11 @@ export const tradeStatuses: Record<EscrowState, TradeStatus> = {
     className: "bg-tint-green text-green",
   },
   // Only reached from ITEM_INCORRECT, once both sides agree to release the
-  // remaining deposits.
+  // deposits.
   SETTLED: {
     label: "Settled",
     description:
-      "Both sides settled the wrong-item report, and the remaining deposits were returned.",
+      "Both sides settled the wrong-item report, and both deposits were returned in full.",
     className: "bg-border/40 text-muted",
   },
   TRADE_CANCELED: {
@@ -189,6 +189,18 @@ export function getCompletedPayout(trade: Trade) {
 }
 
 /**
+ * What the escrow returns once both sides settle an incorrect-item report,
+ * all in wei, mirroring `settle`: each side's whole deposit, which stays
+ * locked from the report until then. No fee is taken.
+ */
+export function getSettledPayout(trade: Trade) {
+  return {
+    returnedToSeller: getDeposit(trade, true),
+    returnedToBuyer: getDeposit(trade, false),
+  };
+}
+
+/**
  * While the escrow is awaiting deposits, each side deposits once. True when
  * it's this side's turn to deposit.
  */
@@ -248,8 +260,8 @@ export function canMarkDelivered(trade: Trade, isSeller: boolean) {
  * Once the seller has marked the item delivered, the buyer either confirms
  * the agreed item arrived (the escrow's `setBuyerHasReceivedCorrectItem`,
  * which pays out) or reports a wrong or missing item
- * (`setBuyerHasReceivedIncorrectItem`, which returns 25% of the buyer's
- * deposit and locks the rest until both sides settle).
+ * (`setBuyerHasReceivedIncorrectItem`, which locks both deposits until both
+ * sides settle).
  */
 export function canConfirmReceipt(trade: Trade, isSeller: boolean) {
   return !isSeller && trade.state === "ITEM_SENT";
@@ -257,7 +269,7 @@ export function canConfirmReceipt(trade: Trade, isSeller: boolean) {
 
 /**
  * After an incorrect-item report, each side settles once (the escrow's
- * `settle`). Once both have, the escrow returns the remaining deposits.
+ * `settle`). Once both have, the escrow returns both deposits.
  */
 export function canSettle(trade: Trade, isSeller: boolean) {
   if (trade.state !== "ITEM_INCORRECT") return false;

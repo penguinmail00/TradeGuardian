@@ -3,7 +3,6 @@ const {
     loadFixture,
     deployEscrow, 
     BUYER_DEPOSIT_MULTIPLIER,
-    PERCENTAGE_RETURNED_TO_BUYER,
     EscrowStates
 } = require("./utils");
 
@@ -38,7 +37,7 @@ describe("Set buyer has received incorrect item", function () {
         expect(currentState).to.equal(EscrowStates.ITEM_INCORRECT);
     });
 
-    it("Should update the buyer's internal balance correctly", async function() {
+    it("Should keep the buyer's full deposit in escrow", async function() {
         const { escrow, buyer, seller, itemPrice } = await loadFixture(deployEscrow);
         const buyerDepositAmount = itemPrice * BUYER_DEPOSIT_MULTIPLIER;
         const sellerDepositAmount = itemPrice;
@@ -47,14 +46,11 @@ describe("Set buyer has received incorrect item", function () {
         await escrow.connect(seller).sellerDeposit({ value: sellerDepositAmount });
         await escrow.connect(seller).setSellerHasGivenItem();
     
-        const initialInternalBuyerBalance = await escrow.userBalances(buyer.address);
-        const amountReturnedToBuyer = (initialInternalBuyerBalance * PERCENTAGE_RETURNED_TO_BUYER) / 100n;
-    
-        await escrow.connect(buyer).setBuyerHasReceivedIncorrectItem();
-    
-        const finalInternalBuyerBalance = await escrow.userBalances(buyer.address);
+        const tx = escrow.connect(buyer).setBuyerHasReceivedIncorrectItem();
 
-        expect(finalInternalBuyerBalance).to.equal(initialInternalBuyerBalance - amountReturnedToBuyer);
+        await expect(tx).to.changeEtherBalances([escrow, buyer], [0, 0]);
+        expect(await escrow.userBalances(buyer.address)).to.equal(buyerDepositAmount);
+        expect(await escrow.userBalances(seller.address)).to.equal(sellerDepositAmount);
     });
     
     it("Should emit IncorrectItemReceived event with correct parameters", async function () {
@@ -66,12 +62,9 @@ describe("Set buyer has received incorrect item", function () {
         await escrow.connect(seller).sellerDeposit({ value: sellerDepositAmount });
         await escrow.connect(seller).setSellerHasGivenItem();
 
-        const buyerBalance = await escrow.userBalances(buyer.address);
-        const amountReturnedToBuyer = (buyerBalance * PERCENTAGE_RETURNED_TO_BUYER) / 100n;
-
         await expect(escrow.connect(buyer).setBuyerHasReceivedIncorrectItem())
             .to.emit(escrow, 'IncorrectItemReceived')
-            .withArgs(buyer.address, amountReturnedToBuyer);
+            .withArgs(buyer.address, buyerDepositAmount);
     });
 
 })

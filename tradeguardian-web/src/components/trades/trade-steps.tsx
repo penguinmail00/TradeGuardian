@@ -14,6 +14,7 @@ import {
   getCanceledBy,
   getCompletedPayout,
   getDeposit,
+  getSettledPayout,
   getParty,
   getTradeSteps,
   needsDeposit,
@@ -291,7 +292,7 @@ function getDeliveryContent(trade: Trade, party: TradeParty | undefined) {
               verb="report the item as not received"
               label="Not Received"
               pendingLabel="Reporting…"
-              successMessage="Reported. Both sides now need to settle to release the remaining deposits."
+              successMessage="Reported. Both sides now need to settle to release the deposits."
               variant="destructive"
               align="start"
               confirmation={getNotReceivedConfirmation(trade)}
@@ -308,8 +309,9 @@ function getDeliveryContent(trade: Trade, party: TradeParty | undefined) {
 /**
  * Under the return step after an incorrect-item report: whether each side has
  * settled, since the deposits are returned once both have, with the Settle
- * button until your side has. Once settled, both sides have. Once completed,
- * where the escrow's funds went. Other statuses get no content.
+ * button until your side has. Once settled, both sides have, followed by what
+ * the escrow returned. Once completed, where the escrow's funds went. Other
+ * statuses get no content.
  */
 function getReturnContent(trade: Trade, party: TradeParty | undefined) {
   if (trade.state === "ITEM_RECEIVED") return <CompletedPayout trade={trade} />;
@@ -335,6 +337,7 @@ function getReturnContent(trade: Trade, party: TradeParty | undefined) {
             : "Buyer has not requested to settle"}
         </ChecklistItem>
       </ul>
+      {isSettled && <SettledPayout trade={trade} />}
       {party && canSettle(trade, party.isSeller) && (
         <EscrowActionButton
           escrow={trade.escrow}
@@ -374,22 +377,33 @@ function CompletedPayout({ trade }: { trade: Trade }) {
   );
 }
 
-/** Mirrors `PERCENTAGE_RETURNED_TO_BUYER` in `Escrow`. */
-const percentageReturnedToBuyer = BigInt(25);
+/**
+ * What the escrow returned once both sides settled an incorrect-item report:
+ * each side's whole deposit.
+ */
+function SettledPayout({ trade }: { trade: Trade }) {
+  const payout = getSettledPayout(trade);
+
+  return (
+    <ul aria-label="Returned deposits" className="flex flex-col gap-1.5">
+      <ChecklistItem isDone>
+        {formatEther(payout.returnedToSeller)} MON returned to seller
+      </ChecklistItem>
+      <ChecklistItem isDone>
+        {formatEther(payout.returnedToBuyer)} MON returned to buyer
+      </ChecklistItem>
+    </ul>
+  );
+}
 
 /**
  * Explains, with the amounts, what reporting the item as not received does:
- * the escrow returns a quarter of the buyer's deposit and locks the rest, with
- * the seller's deposit, until both sides settle.
+ * the escrow locks both deposits until both sides settle, then returns them.
  */
 function getNotReceivedConfirmation(trade: Trade) {
-  const buyerDeposit = getDeposit(trade, false);
-  const returned = (buyerDeposit * percentageReturnedToBuyer) / BigInt(100);
-  const locked = buyerDeposit - returned;
-
   return {
     title: "Report item as not received?",
-    message: `You'll get ${formatEther(returned)} MON (25% of your deposit) back now. The other ${formatEther(locked)} MON, and the seller's ${formatEther(getDeposit(trade, true))} MON deposit, stay locked in escrow until you and the seller both settle. This can't be undone.`,
+    message: `Your ${formatEther(getDeposit(trade, false))} MON deposit, and the seller's ${formatEther(getDeposit(trade, true))} MON deposit, stay locked in escrow until you and the seller both settle. Then each of you gets your full deposit back. This can't be undone.`,
     confirmLabel: "Yes, report not received",
   };
 }

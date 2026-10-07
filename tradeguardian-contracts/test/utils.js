@@ -5,7 +5,6 @@ const {
 const TWO_HOURS_IN_SECS = 7200;
 const ONE_WEI = ethers.parseEther("0.000000000000000001");
 const BUYER_DEPOSIT_MULTIPLIER = 2n;
-const PERCENTAGE_RETURNED_TO_BUYER = 25n;
 const FEE_PERCENTAGE = 1n;
 const EscrowStates = {
     AWAITING_DEPOSIT: 0,
@@ -56,7 +55,6 @@ module.exports = {
     TWO_HOURS_IN_SECS,
     ONE_WEI,
     BUYER_DEPOSIT_MULTIPLIER,
-    PERCENTAGE_RETURNED_TO_BUYER,
     FEE_PERCENTAGE,
     EscrowStates,
     loadFixture,

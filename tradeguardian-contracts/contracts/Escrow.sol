@@ -8,9 +8,6 @@ contract Escrow is Initializable, ReentrancyGuard {
     // The buyer deposits 2x the item price
     uint256 private constant BUYER_DEPOSIT_MULTIPLIER = 2;
 
-    // Amount of the deposit returned to the buyer (25% of total deposit)
-    uint256 private constant PERCENTAGE_RETURNED_TO_BUYER = 25;
-
     // 1% fee of item price if successful transaction between both parties
     uint256 private constant FEE_PERCENTAGE = 1;
 
@@ -222,11 +219,9 @@ contract Escrow is Initializable, ReentrancyGuard {
         );
     }
 
-    function setBuyerHasReceivedIncorrectItem()
-        external
-        onlyBuyer
-        nonReentrant
-    {
+    // Both deposits stay in full until both parties settle; nothing is
+    // returned at the report.
+    function setBuyerHasReceivedIncorrectItem() external onlyBuyer {
         require(
             currentState == EscrowState.ITEM_SENT,
             "Invalid state for this action"
@@ -234,22 +229,7 @@ contract Escrow is Initializable, ReentrancyGuard {
 
         currentState = EscrowState.ITEM_INCORRECT;
 
-        uint256 amountReturnedToBuyer = (userBalances[buyer] *
-            PERCENTAGE_RETURNED_TO_BUYER) / 100;
-
-        // Check to prevent underflows
-        require(
-            userBalances[buyer] >= amountReturnedToBuyer,
-            "Insufficient balance"
-        );
-
-        uint256 buyerUpdatedBalance = userBalances[buyer] -
-            amountReturnedToBuyer;
-        userBalances[buyer] = buyerUpdatedBalance;
-
-        payable(buyer).transfer(amountReturnedToBuyer);
-
-        emit IncorrectItemReceived(buyer, amountReturnedToBuyer);
+        emit IncorrectItemReceived(buyer, userBalances[buyer]);
     }
 
     function settle() external onlyParties nonReentrant {

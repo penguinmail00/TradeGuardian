@@ -3,7 +3,6 @@ const {
     loadFixture,
     deployEscrow,
     BUYER_DEPOSIT_MULTIPLIER,
-    PERCENTAGE_RETURNED_TO_BUYER,
     EscrowStates
 } = require("./utils");
 
@@ -19,9 +18,9 @@ async function deployEscrowInItemIncorrectState() {
     return fixture;
 }
 
+// Nothing is returned at the report, so settling returns the whole deposit.
 function expectedBuyerSettlementAmount(itemPrice) {
-    const buyerDeposit = itemPrice * BUYER_DEPOSIT_MULTIPLIER;
-    return buyerDeposit - (buyerDeposit * PERCENTAGE_RETURNED_TO_BUYER) / 100n;
+    return itemPrice * BUYER_DEPOSIT_MULTIPLIER;
 }
 
 describe("Settle", function () {
@@ -130,7 +129,7 @@ describe("Settle", function () {
         expect(await escrow.currentState()).to.equal(EscrowStates.SETTLED);
     });
 
-    it("Should return the buyer's full deposit across the incorrect-item refund and settlement", async function () {
+    it("Should return the buyer's full deposit at settlement and nothing at the report", async function () {
         const { escrow, buyer, seller, itemPrice } = await loadFixture(deployEscrow);
         const buyerDeposit = itemPrice * BUYER_DEPOSIT_MULTIPLIER;
 
@@ -138,13 +137,12 @@ describe("Settle", function () {
         await escrow.connect(seller).sellerDeposit({ value: itemPrice });
         await escrow.connect(seller).setSellerHasGivenItem();
 
-        const refundTx = escrow.connect(buyer).setBuyerHasReceivedIncorrectItem();
-        const refund = (buyerDeposit * PERCENTAGE_RETURNED_TO_BUYER) / 100n;
-        await expect(refundTx).to.changeEtherBalance(buyer, refund);
+        await expect(escrow.connect(buyer).setBuyerHasReceivedIncorrectItem())
+            .to.changeEtherBalance(buyer, 0);
 
         await escrow.connect(seller).settle();
         await expect(escrow.connect(buyer).settle())
-            .to.changeEtherBalance(buyer, buyerDeposit - refund);
+            .to.changeEtherBalance(buyer, buyerDeposit);
     });
 
     it("Should emit Settled event with correct parameters", async function () {
