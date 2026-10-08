@@ -1,9 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { isAddress } from "viem";
 
-import { findTrade, setArchived } from "@/lib/fake-trades";
+import { setArchived } from "@/lib/archived-trades";
+import { syncTradeFromChain } from "@/lib/escrow-sync";
 import { canArchive } from "@/lib/trades";
+import { fetchTrade } from "@/lib/trades-api";
 
 /**
  * Archives or unarchives a finished trade. Expects `escrow` and `archived`
@@ -13,9 +16,11 @@ import { canArchive } from "@/lib/trades";
 export async function setTradeArchived(formData: FormData) {
   const escrow = formData.get("escrow");
   const archived = formData.get("archived");
-  if (typeof escrow !== "string" || (archived !== "true" && archived !== "false")) return;
+  if (typeof escrow !== "string" || !isAddress(escrow) || (archived !== "true" && archived !== "false")) return;
 
-  const trade = findTrade(escrow);
+  const stored = await fetchTrade(escrow);
+  // Whether it can be archived depends on the escrow's current state.
+  const trade = stored && (await syncTradeFromChain(stored));
   if (!trade || !canArchive(trade)) return;
 
   setArchived(trade, archived === "true");

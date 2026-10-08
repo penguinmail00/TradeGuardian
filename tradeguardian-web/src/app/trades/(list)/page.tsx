@@ -10,9 +10,12 @@ import { TradeStatusBadge } from "@/components/trades/trade-status-badge";
 import { TradeTimeCell } from "@/components/trades/trade-time";
 import { getConnectedAccount } from "@/lib/connected-account";
 import { syncTradeFromChain } from "@/lib/escrow-sync";
-import { isArchived, trades } from "@/lib/fake-trades";
+import { isArchived } from "@/lib/archived-trades";
 import { getRequestTime } from "@/lib/request-time";
-import { getParty, shortenAddress, untitledTradeName, type Trade } from "@/lib/trades";
+import { shortenAddress, untitledTradeName, type Trade } from "@/lib/trades";
+import { fetchTrades, TradesApiError } from "@/lib/trades-api";
+
+import { TradesIntro } from "./trades-intro";
 
 export const metadata: Metadata = {
   title: "My Trades | TradeGuardian",
@@ -62,7 +65,7 @@ export default async function MyTradesPage({ searchParams }: PageProps<"/trades"
     search: typeof q === "string" ? q.trim() : "",
   };
   const account = await getConnectedAccount();
-  const myTrades = account ? trades.filter((trade) => getParty(trade, account)) : [];
+  const { trades: myTrades, hasLoadError } = await loadTrades(account);
   // So each status badge shows the escrow's current state.
   await Promise.all(myTrades.map(syncTradeFromChain));
   const sortedTrades = myTrades
@@ -103,6 +106,8 @@ export default async function MyTradesPage({ searchParams }: PageProps<"/trades"
           </div>
           {!account ? (
             <p className="type-body text-muted">Connect your wallet to see your trades.</p>
+          ) : hasLoadError ? (
+            <p className="type-body text-muted">Your trades couldn’t be loaded. Refresh the page to try again.</p>
           ) : shownTrades.length > 0 ? (
             <TradeList trades={shownTrades} account={account} params={params} serverNow={serverNow} />
           ) : params.search ? (
@@ -130,17 +135,19 @@ export default async function MyTradesPage({ searchParams }: PageProps<"/trades"
   );
 }
 
-function TradesIntro() {
-  return (
-    <section className="pt-(--header-height)">
-      <div className="mx-auto flex w-[calc(100%-60px)] max-w-[1140px] flex-col gap-6 pt-16 pb-12 sm:flex-row sm:items-center sm:justify-between lg:pt-24 lg:pb-16">
-        <div>
-          <h1 className="type-h1 text-balance">My trades</h1>
-        </div>
-        <TradeActions />
-      </div>
-    </section>
-  );
+/**
+ * The connected wallet's saved trades. A backend failure shows as a message on
+ * the page rather than an error page, so the tabs and actions stay usable.
+ */
+async function loadTrades(account: Address | undefined) {
+  if (!account) return { trades: [], hasLoadError: false };
+  try {
+    return { trades: await fetchTrades(account), hasLoadError: false };
+  } catch (error) {
+    if (!(error instanceof TradesApiError)) throw error;
+    console.error(error);
+    return { trades: [], hasLoadError: true };
+  }
 }
 
 function ViewTabs({
@@ -302,20 +309,6 @@ function SortLink({
         <path d="M12 5v14M5 12l7 7 7-7" />
       </svg>
     </Link>
-  );
-}
-
-/** Create a new trade, or add one the other side created. Stacked on phones, Create on top. */
-function TradeActions() {
-  return (
-    <div className="flex w-full shrink-0 flex-col gap-3 sm:w-auto sm:flex-row">
-      <Link href="/trades/create" className="btn btn-primary w-full sm:w-auto">
-        Create a trade
-      </Link>
-      <Link href="/trades/new" className="btn btn-secondary w-full sm:w-auto">
-        Add a trade
-      </Link>
-    </div>
   );
 }
 

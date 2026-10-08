@@ -1,17 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import type { Address } from "viem";
+import { isAddress, type Address } from "viem";
 
-import { SiteFooter } from "@/components/site-shell/site-footer";
-import { SiteHeader } from "@/components/site-shell/site-header";
-import { BackToTradesLink } from "@/components/trades/back-to-trades-link";
 import { TradeSteps } from "@/components/trades/trade-steps";
 import { getConnectedAccount } from "@/lib/connected-account";
 import { syncTradeFromChain } from "@/lib/escrow-sync";
-import { explorerName, getExplorerAddressUrl } from "@/lib/explorer";
-import { findTrade, isArchived } from "@/lib/fake-trades";
+import { isArchived } from "@/lib/archived-trades";
 import { canArchive, tradeStatuses, untitledTradeName } from "@/lib/trades";
+import { fetchTrade, TradesApiError } from "@/lib/trades-api";
 
 import { setTradeArchived } from "../actions";
 
@@ -19,9 +16,13 @@ import { setTradeArchived } from "../actions";
 // prerendered and shared.
 export const dynamic = "force-dynamic";
 
-/** The trade with its escrow's current state, read once per request. */
+/**
+ * The saved trade with its escrow's current state, read once per request.
+ * Undefined for anything that isn't a saved escrow's address.
+ */
 const getTrade = cache(async (address: string) => {
-  const trade = findTrade(address);
+  if (!isAddress(address)) return undefined;
+  const trade = await fetchTrade(address);
   return trade && syncTradeFromChain(trade);
 });
 
@@ -29,7 +30,13 @@ export async function generateMetadata({
   params,
 }: PageProps<"/trades/[address]">): Promise<Metadata> {
   const { address } = await params;
-  const trade = await getTrade(address);
+  // A backend failure shows on the page (`error.tsx`); the title shouldn't
+  // fail along with it.
+  const trade = await getTrade(address).catch((error) => {
+    if (error instanceof TradesApiError) return null;
+    throw error;
+  });
+  if (trade === null) return { title: "Trade | TradeGuardian" };
   if (!trade) return { title: "Trade not found | TradeGuardian" };
 
   return {
@@ -39,8 +46,8 @@ export async function generateMetadata({
 }
 
 /**
- * A single trade, looked up by its escrow contract address. Rendered entirely
- * on the server.
+ * A single trade, looked up by its escrow contract address, under the
+ * layout's heading and explorer link. Rendered entirely on the server.
  */
 export default async function TradePage({ params }: PageProps<"/trades/[address]">) {
   const { address } = await params;
@@ -48,34 +55,13 @@ export default async function TradePage({ params }: PageProps<"/trades/[address]
   if (!trade) notFound();
 
   return (
-    <div className="relative flex min-h-full flex-1 flex-col">
-      <SiteHeader />
-      <main className="flex-1">
-        <section className="pt-(--header-height)">
-          <div className="mx-auto w-[calc(100%-60px)] max-w-[800px] pt-16 pb-16 lg:pt-24 lg:pb-24">
-            <BackToTradesLink />
-            <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <h1 className="type-h1">Transaction Details</h1>
-              <a
-                href={getExplorerAddressUrl(trade.escrow)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-secondary self-start sm:self-auto"
-              >
-                View on {explorerName}
-                <ExternalLinkIcon />
-              </a>
-            </div>
-            <div className="panel mt-10 px-5 py-6 lg:px-6">
-              <TradeSteps trade={trade} account={account} />
-            </div>
+    <>
+      <div className="panel mt-10 px-5 py-6 lg:px-6">
+        <TradeSteps trade={trade} account={account} />
+      </div>
 
-            {canArchive(trade) && <ArchiveForm escrow={trade.escrow} isArchived={isArchived(trade)} />}
-          </div>
-        </section>
-      </main>
-      <SiteFooter />
-    </div>
+      {canArchive(trade) && <ArchiveForm escrow={trade.escrow} isArchived={isArchived(trade)} />}
+    </>
   );
 }
 
@@ -95,13 +81,5 @@ function ArchiveForm({ escrow, isArchived }: { escrow: Address; isArchived: bool
         {isArchived ? "Unarchive trade" : "Archive trade"}
       </button>
     </form>
-  );
-}
-
-function ExternalLinkIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="size-4 shrink-0">
-      <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
-    </svg>
   );
 }

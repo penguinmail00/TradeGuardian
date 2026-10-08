@@ -20,12 +20,12 @@ const escrowStates: readonly EscrowState[] = [
 /**
  * Updates a stored trade in place with its escrow's `currentState` and
  * deposits, so the page reflects transactions sent since it was saved. Keeps
- * the stored values if the escrow can't be read (e.g. the placeholder trades,
- * which aren't deployed).
+ * the stored values if the escrow can't be read (e.g. the RPC is down).
  *
  * Deposits come from `userBalances` only while the trade awaits deposits;
  * after that both sides must have deposited, except on a canceled trade, whose
- * balances are emptied, so the last values seen are kept.
+ * balances are emptied. The backend doesn't store deposits, so a canceled
+ * trade shows neither side as having deposited.
  *
  * The settle flags are only public on escrows from the current factory; on
  * older ones those reads fail and the stored flags are kept.
