@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { startTransition, useActionState, useState, type FormEvent, type ReactNode } from "react";
 import {
@@ -15,10 +16,11 @@ import {
 import { useAccount, usePublicClient, useWriteContract } from "wagmi";
 
 import { escrowFactoryAbi, escrowFactoryAddress, escrowFactoryChain } from "@/lib/escrow-factory";
+import { tradesQueryKey } from "@/lib/use-trades";
 import { wagmiConfig } from "@/lib/wagmi-config";
 
-import { saveCreatedTrade } from "./actions";
 import { itemDetailsLimits, itemDetailsSchema } from "./create-trade";
+import { saveCreatedTrade } from "./save-created-trade";
 
 type FieldName = "itemName" | "description" | "role" | "counterparty" | "price";
 type FieldErrors = Partial<Record<FieldName, string>>;
@@ -44,6 +46,7 @@ const initialState: CreateTradeState = { status: "idle" };
  */
 export function CreateTradeForm() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { address: account, chainId } = useAccount();
   const priceChain = getPriceChain(chainId);
   const publicClient = usePublicClient({ chainId: escrowFactoryChain.id });
@@ -138,6 +141,8 @@ export function CreateTradeForm() {
         return fail({}, `Your trade was created at ${escrow}, but its details couldn't be saved. ${saved.message}`);
       }
 
+      // So My trades lists the new trade.
+      await queryClient.invalidateQueries({ queryKey: tradesQueryKey });
       router.push(`/trades/${escrow}`);
       return initialState;
     },

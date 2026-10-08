@@ -59,8 +59,8 @@ const faqJsonLd = {
 };
 
 /**
- * Frequently asked questions, all shown expanded. Rendered entirely on the
- * server.
+ * Frequently asked questions, all shown expanded. Static content with no
+ * data, so it's prerendered at build time.
  */
 export default function FaqPage() {
   return (

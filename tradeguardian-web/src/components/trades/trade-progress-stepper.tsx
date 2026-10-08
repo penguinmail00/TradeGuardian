@@ -75,8 +75,8 @@ const sx: StepperProps["sx"] = {
 
 /**
  * The trade's progress as MUI's vertical Stepper, sharing the home page
- * stepper's theme and marker. Each step's content (passed in already rendered
- * by the server) sits under its label. Steps with content start open, and a
+ * stepper's theme and marker. Each step's content (passed in already rendered)
+ * sits under its label. Steps with content start open, and a
  * chevron button in the label row collapses or expands each one, except the
  * current step, which always stays open.
  */

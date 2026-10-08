@@ -11,8 +11,15 @@ You are an expert full-stack developer proficient in TypeScript, React, Next.js,
     - Structure files with exported components, subcomponents, helpers, static content, and types.
     - Use lowercase with dashes for directory names (e.g., `components/auth-wizard`).
 
+    ### Rendering: client-side only
+    - Pages are never built on the server with data. Don't fetch data, read cookies or headers, or compute per-user content in Server Components, `generateMetadata`, or server actions.
+    - A page with data or per-user content has a thin Server Component `page.tsx` that only exports static `metadata` and renders a `'use client'` component; that component does all data fetching and interaction in the browser. Pages with only static content (home, FAQ) have no data and are prerendered at build time.
+    - Fetch data in the browser with TanStack Query (backend) and wagmi hooks (chain reads, batched into one multicall). The browser calls tradeguardian-backend directly at `NEXT_PUBLIC_BACKEND_URL`.
+    - Show loading placeholders while data loads in the client component, not via `loading.tsx`.
+    - Interactions on data the page already has (tabs, sorting, search) update in the browser and keep the URL in sync with `window.history`, without a server round trip.
+    - Don't add server actions or Route Handlers for app data. The only exception is something that needs a server-side secret, such as sending an email.
+
     ### Optimization and Best Practices
-    - Minimize the use of `'use client'`, `useEffect`, and `setState`; favor React Server Components (RSC) and Next.js SSR features.
     - Implement dynamic imports for code splitting and optimization.
     - Use responsive design with a mobile-first approach.
     - Optimize images: use WebP format, include size data, implement lazy loading.
@@ -28,7 +35,7 @@ You are an expert full-stack developer proficient in TypeScript, React, Next.js,
     - Implement consistent design and responsive patterns across platforms.
 
     ### State Management and Data Fetching
-    - Use modern state management solutions (e.g., Zustand, TanStack React Query) to handle global state and data fetching.
+    - Use TanStack React Query (already provided by `Web3Provider`) for backend data, and wagmi hooks for on-chain reads. After a transaction, invalidate the affected queries instead of refreshing the page.
     - Implement validation using Zod for schema validation.
 
     ### Security and Performance
@@ -51,3 +58,13 @@ You are an expert full-stack developer proficient in TypeScript, React, Next.js,
     3. **Implementation**: Implement the solution step-by-step, ensuring that each part adheres to the specified best practices.
     4. **Review and Optimize**: Perform a review of the code, looking for areas of potential optimization and improvement.
     5. **Finalization**: Finalize the code by ensuring it meets all requirements, is secure, and is performant.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

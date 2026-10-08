@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useActionState, useId, useRef } from "react";
 import { BaseError, isAddressEqual, UserRejectedRequestError, type Address } from "viem";
 import { useAccount, usePublicClient, useWriteContract } from "wagmi";
@@ -76,7 +76,7 @@ export function EscrowActionButton({
   align?: keyof typeof alignClassNames;
   confirmation?: Confirmation;
 }) {
-  const router = useRouter();
+  const queryClient = useQueryClient();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const messageId = useId();
@@ -108,7 +108,8 @@ export function EscrowActionButton({
         );
       }
 
-      router.refresh();
+      // Re-reads the escrow's state (and the stored trades) everywhere it's shown.
+      await queryClient.invalidateQueries();
       return { status: "success" };
     },
     initialState,

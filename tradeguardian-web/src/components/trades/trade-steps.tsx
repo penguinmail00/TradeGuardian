@@ -5,7 +5,6 @@ import { ChecklistItem } from "@/components/trades/checklist-item";
 import { EscrowActionButton } from "@/components/trades/escrow-action-button";
 import { TradeProgressStepper } from "@/components/trades/trade-progress-stepper";
 import { TradeTimestamp } from "@/components/trades/trade-time";
-import { getRequestTime } from "@/lib/request-time";
 import {
   canCancel,
   canConfirmReceipt,
@@ -27,9 +26,18 @@ import {
  * The trade's four steps, rendered by MUI's Stepper. The Create Trade step
  * lists the trade's details, the deposits step who has deposited, the
  * delivery step its progress, and the return step the settlement or payout.
- * Actions are only offered to `account` when it's the seller or buyer.
+ * Actions are only offered to `account` when it's the seller or buyer. Ages and
+ * the deposit deadline are measured from `now`, when the trade was loaded.
  */
-export function TradeSteps({ trade, account }: { trade: Trade; account: Address | undefined }) {
+export function TradeSteps({
+  trade,
+  account,
+  now,
+}: {
+  trade: Trade;
+  account: Address | undefined;
+  now: number;
+}) {
   const statuses = getTradeSteps(trade);
   const party = getParty(trade, account);
 
@@ -40,9 +48,9 @@ export function TradeSteps({ trade, account }: { trade: Trade; account: Address 
         status: statuses[index],
         content:
           index === 0 ? (
-            <CreationDetails trade={trade} account={account} party={party} />
+            <CreationDetails trade={trade} account={account} party={party} now={now} />
           ) : step.states.includes("AWAITING_DEPOSIT") ? (
-            <DepositDetails trade={trade} party={party} />
+            <DepositDetails trade={trade} party={party} now={now} />
           ) : step.states.includes("AWAITING_DELIVERY") ? (
             getDeliveryContent(trade, party)
           ) : (
@@ -70,10 +78,12 @@ function CreationDetails({
   trade,
   account,
   party,
+  now,
 }: {
   trade: Trade;
   account: Address | undefined;
   party: TradeParty | undefined;
+  now: number;
 }) {
   const seller = { side: "Seller", address: trade.seller };
   const buyer = { side: "Buyer", address: trade.buyer };
@@ -131,7 +141,7 @@ function CreationDetails({
         <dd>
           <TradeTimestamp
             dateTime={trade.createdAt.toISOString()}
-            serverNow={getRequestTime()}
+            now={now}
             hasClockIcon={false}
           />
         </dd>
@@ -165,7 +175,7 @@ function CreationDetails({
  * trade awaits deposits it also has the deposit button on your turn, or the
  * cancel button once the deposit window has closed.
  */
-function DepositDetails({ trade, party }: { trade: Trade; party: TradeParty | undefined }) {
+function DepositDetails({ trade, party, now }: { trade: Trade; party: TradeParty | undefined; now: number }) {
   const canceledBy = getCanceledBy(trade);
 
   return (
@@ -200,7 +210,7 @@ function DepositDetails({ trade, party }: { trade: Trade; party: TradeParty | un
           align="start"
         />
       )}
-      {party && canCancel(trade, party.isSeller, getRequestTime()) && (
+      {party && canCancel(trade, party.isSeller, now) && (
         <EscrowActionButton
           escrow={trade.escrow}
           account={party.account}

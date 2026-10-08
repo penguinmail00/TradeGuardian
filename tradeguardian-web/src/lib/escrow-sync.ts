@@ -1,10 +1,6 @@
-import { createPublicClient, http } from "viem";
-
 import { escrowAbi } from "@/lib/escrow-abi";
 import { escrowFactoryChain } from "@/lib/escrow-factory";
 import type { EscrowState, Trade } from "@/lib/trades";
-
-const publicClient = createPublicClient({ chain: escrowFactoryChain, transport: http() });
 
 /** `Escrow.EscrowState` in declaration order, so the index is the on-chain value. */
 const escrowStates: readonly EscrowState[] = [
@@ -17,10 +13,32 @@ const escrowStates: readonly EscrowState[] = [
   "TRADE_CANCELED",
 ];
 
+/** How many reads `getEscrowStateContracts` makes per trade. */
+export const escrowStateReadCount = 5;
+
 /**
- * Updates a stored trade in place with its escrow's `currentState` and
- * deposits, so the page reflects transactions sent since it was saved. Keeps
- * the stored values if the escrow can't be read (e.g. the RPC is down).
+ * The reads that give a trade's current state, in the order
+ * `withEscrowState` expects: `currentState`, both deposits, and both settle
+ * flags. Many trades' reads go in one `useReadContracts` call, so they're
+ * batched into a single multicall.
+ */
+export function getEscrowStateContracts(trade: Trade) {
+  const base = { address: trade.escrow, abi: escrowAbi, chainId: escrowFactoryChain.id } as const;
+  return [
+    { ...base, functionName: "currentState" },
+    { ...base, functionName: "userBalances", args: [trade.seller] },
+    { ...base, functionName: "userBalances", args: [trade.buyer] },
+    { ...base, functionName: "hasSellerSettled" },
+    { ...base, functionName: "hasBuyerSettled" },
+  ] as const;
+}
+
+type ReadResult = { status: "success"; result: unknown } | { status: "failure"; error: Error };
+
+/**
+ * A copy of the stored trade with its escrow's `currentState` and deposits
+ * from `results` (from `getEscrowStateContracts`). Keeps the stored values if
+ * the escrow couldn't be read (e.g. the RPC is down).
  *
  * Deposits come from `userBalances` only while the trade awaits deposits;
  * after that both sides must have deposited, except on a canceled trade, whose
@@ -30,32 +48,24 @@ const escrowStates: readonly EscrowState[] = [
  * The settle flags are only public on escrows from the current factory; on
  * older ones those reads fail and the stored flags are kept.
  */
-export async function syncTradeFromChain(trade: Trade): Promise<Trade> {
-  const [state, sellerBalance, buyerBalance, hasSellerSettled, hasBuyerSettled] = await publicClient.multicall({
-    contracts: [
-      { address: trade.escrow, abi: escrowAbi, functionName: "currentState" },
-      { address: trade.escrow, abi: escrowAbi, functionName: "userBalances", args: [trade.seller] },
-      { address: trade.escrow, abi: escrowAbi, functionName: "userBalances", args: [trade.buyer] },
-      { address: trade.escrow, abi: escrowAbi, functionName: "hasSellerSettled" },
-      { address: trade.escrow, abi: escrowAbi, functionName: "hasBuyerSettled" },
-    ],
-  }).catch(() => []);
+export function withEscrowState(trade: Trade, results: readonly ReadResult[] | undefined): Trade {
+  const [state, sellerBalance, buyerBalance, hasSellerSettled, hasBuyerSettled] = results ?? [];
   if (state?.status !== "success" || sellerBalance?.status !== "success" || buyerBalance?.status !== "success") {
     return trade;
   }
 
-  const escrowState = escrowStates[state.result];
+  const escrowState = escrowStates[state.result as number];
   if (!escrowState) return trade;
 
-  trade.state = escrowState;
+  const synced = { ...trade, state: escrowState };
   if (escrowState === "AWAITING_DEPOSIT") {
-    trade.hasSellerDeposited = sellerBalance.result > BigInt(0);
-    trade.hasBuyerDeposited = buyerBalance.result > BigInt(0);
+    synced.hasSellerDeposited = (sellerBalance.result as bigint) > BigInt(0);
+    synced.hasBuyerDeposited = (buyerBalance.result as bigint) > BigInt(0);
   } else if (escrowState !== "TRADE_CANCELED") {
-    trade.hasSellerDeposited = true;
-    trade.hasBuyerDeposited = true;
+    synced.hasSellerDeposited = true;
+    synced.hasBuyerDeposited = true;
   }
-  if (hasSellerSettled?.status === "success") trade.hasSellerSettled = hasSellerSettled.result;
-  if (hasBuyerSettled?.status === "success") trade.hasBuyerSettled = hasBuyerSettled.result;
-  return trade;
+  if (hasSellerSettled?.status === "success") synced.hasSellerSettled = hasSellerSettled.result as boolean;
+  if (hasBuyerSettled?.status === "success") synced.hasBuyerSettled = hasBuyerSettled.result as boolean;
+  return synced;
 }

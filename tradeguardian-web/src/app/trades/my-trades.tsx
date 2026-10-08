@@ -1,32 +1,32 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import type { ReactNode } from "react";
-import { formatEther, isAddressEqual, type Address } from "viem";
+"use client";
 
-import { SiteFooter } from "@/components/site-shell/site-footer";
-import { SiteHeader } from "@/components/site-shell/site-header";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useSyncExternalStore, type ComponentProps, type FormEvent, type MouseEvent, type ReactNode } from "react";
+import { formatEther, isAddressEqual, type Address } from "viem";
+import { useAccount } from "wagmi";
+
 import { CopyButton } from "@/components/trades/copy-button";
+import { Placeholder } from "@/components/trades/placeholder";
 import { TradeStatusBadge } from "@/components/trades/trade-status-badge";
 import { TradeTimeCell } from "@/components/trades/trade-time";
-import { getConnectedAccount } from "@/lib/connected-account";
-import { syncTradeFromChain } from "@/lib/escrow-sync";
-import { isArchived } from "@/lib/archived-trades";
-import { getRequestTime } from "@/lib/request-time";
+import { useArchivedTrades } from "@/lib/archived-trades";
 import { shortenAddress, untitledTradeName, type Trade } from "@/lib/trades";
-import { fetchTrades, TradesApiError } from "@/lib/trades-api";
-
-import { TradesIntro } from "./trades-intro";
-
-export const metadata: Metadata = {
-  title: "My Trades | TradeGuardian",
-  description: "Track the status of every trade you are buying or selling.",
-};
+import { useMyTrades } from "@/lib/use-trades";
 
 type SortOrder = "newest" | "oldest";
 type TradeView = "trades" | "archived";
 
 /** Everything the URL controls; links change one field and keep the rest. */
 type ListParams = { view: TradeView; sortOrder: SortOrder; search: string };
+
+function parseListParams(searchParams: URLSearchParams): ListParams {
+  return {
+    view: searchParams.get("view") === "archived" ? "archived" : "trades",
+    sortOrder: searchParams.get("sort") === "oldest" ? "oldest" : "newest",
+    search: searchParams.get("q")?.trim() ?? "",
+  };
+}
 
 /** `/trades`, `/trades?view=archived&sort=oldest&q=0x12`, … (defaults are omitted). */
 function tradesHref({ view, sortOrder, search }: ListParams) {
@@ -53,21 +53,59 @@ function matchesSearch(trade: Trade, account: Address, search: string) {
 }
 
 /**
- * Lists the connected wallet's trades (where it's the seller or buyer) in two tabs, unarchived and archived
- * (`?view=archived`), sorted by creation date (`?sort=oldest`, newest by
- * default) and filtered by item name or address (`?q=`). Rendered entirely on the server.
+ * Shows a new list view without a server round trip: the URL changes through
+ * the History API, which `useSearchParams` follows, and the list re-renders
+ * from the trades already loaded.
  */
-export default async function MyTradesPage({ searchParams }: PageProps<"/trades">) {
-  const { sort, view, q } = await searchParams;
-  const params: ListParams = {
-    view: view === "archived" ? "archived" : "trades",
-    sortOrder: sort === "oldest" ? "oldest" : "newest",
-    search: typeof q === "string" ? q.trim() : "",
-  };
-  const account = await getConnectedAccount();
-  const { trades: myTrades, hasLoadError } = await loadTrades(account);
-  // So each status badge shows the escrow's current state.
-  await Promise.all(myTrades.map(syncTradeFromChain));
+function showListView(params: ListParams) {
+  window.history.pushState(null, "", tradesHref(params));
+}
+
+/**
+ * A link to another view of the list. A plain click switches in the browser
+ * (`showListView`); modified clicks (new tab, etc.) follow the real href.
+ */
+function ListViewLink({
+  params,
+  children,
+  ...props
+}: { params: ListParams; children: ReactNode } & Omit<ComponentProps<"a">, "href" | "onClick">) {
+  function handleClick(event: MouseEvent<HTMLAnchorElement>) {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    showListView(params);
+  }
+
+  return (
+    <a href={tradesHref(params)} onClick={handleClick} {...props}>
+      {children}
+    </a>
+  );
+}
+
+function subscribeToNothing() {
+  return () => {};
+}
+
+/**
+ * Lists the connected wallet's trades (where it's the seller or buyer) in two
+ * tabs, unarchived and archived (`?view=archived`), sorted by creation date
+ * (`?sort=oldest`, newest by default) and filtered by item name or address
+ * (`?q=`). Loads the trades in the browser and switches tabs, sorting and
+ * search there too, keeping the URL in sync.
+ */
+export function MyTradesList() {
+  const params = parseListParams(useSearchParams());
+  const { address: account, status } = useAccount();
+  // wagmi starts disconnected and reconnects the stored wallet after mount, so
+  // until then "no wallet" isn't known yet.
+  const isMounted = useSyncExternalStore(subscribeToNothing, () => true, () => false);
+  const isWalletPending = !isMounted || status === "connecting" || status === "reconnecting";
+  const { trades: myTrades = [], isLoading, isError, loadedAt } = useMyTrades(account);
+  const { isArchived } = useArchivedTrades(account);
+
+  if (isWalletPending || (account && isLoading)) return <TradeListPlaceholder />;
+
   const sortedTrades = myTrades
     .filter((trade) => account && matchesSearch(trade, account, params.search))
     .toSorted((a, b) =>
@@ -78,15 +116,9 @@ export default async function MyTradesPage({ searchParams }: PageProps<"/trades"
   const unarchivedTrades = sortedTrades.filter((trade) => !isArchived(trade));
   const archivedTrades = sortedTrades.filter(isArchived);
   const shownTrades = params.view === "archived" ? archivedTrades : unarchivedTrades;
-  // Ages are measured from the request time.
-  const serverNow = getRequestTime();
 
   return (
-    <div className="relative flex min-h-full flex-1 flex-col">
-      <SiteHeader />
-      <main className="flex-1">
-        <TradesIntro />
-        <div className="mx-auto w-[calc(100%-60px)] max-w-[1140px] pb-16 lg:pb-24">
+        <>
           {/* From lg up, tabs and search share one bar above a single divider;
               below that the search drops under the tabs. */}
           <div className="mb-6 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-8 lg:border-b lg:border-border">
@@ -106,20 +138,19 @@ export default async function MyTradesPage({ searchParams }: PageProps<"/trades"
           </div>
           {!account ? (
             <p className="type-body text-muted">Connect your wallet to see your trades.</p>
-          ) : hasLoadError ? (
+          ) : isError ? (
             <p className="type-body text-muted">Your trades couldn’t be loaded. Refresh the page to try again.</p>
           ) : shownTrades.length > 0 ? (
-            <TradeList trades={shownTrades} account={account} params={params} serverNow={serverNow} />
+            <TradeList trades={shownTrades} account={account} params={params} now={loadedAt} />
           ) : params.search ? (
             <p className="type-body text-muted">
               No trades match “{params.search}”.{" "}
-              <Link
-                href={tradesHref({ ...params, search: "" })}
-                scroll={false}
+              <ListViewLink
+                params={{ ...params, search: "" }}
                 className="text-foreground underline underline-offset-4"
               >
                 Clear search
-              </Link>
+              </ListViewLink>
             </p>
           ) : params.view === "archived" ? (
             <p className="type-body text-muted">No archived trades.</p>
@@ -128,26 +159,41 @@ export default async function MyTradesPage({ searchParams }: PageProps<"/trades"
               {archivedTrades.length > 0 ? "All your trades are archived." : "You don’t have any trades yet. Create a trade or add one someone shared with you."}
             </p>
           )}
-        </div>
-      </main>
-      <SiteFooter />
-    </div>
+        </>
   );
 }
 
+const placeholderRowCount = 4;
+
 /**
- * The connected wallet's saved trades. A backend failure shows as a message on
- * the page rather than an error page, so the tabs and actions stay usable.
+ * Stands in for the tabs, search and list while the wallet reconnects and the
+ * trades load, in the same places as the loaded list.
  */
-async function loadTrades(account: Address | undefined) {
-  if (!account) return { trades: [], hasLoadError: false };
-  try {
-    return { trades: await fetchTrades(account), hasLoadError: false };
-  } catch (error) {
-    if (!(error instanceof TradesApiError)) throw error;
-    console.error(error);
-    return { trades: [], hasLoadError: true };
-  }
+export function TradeListPlaceholder() {
+  return (
+    <div role="status" aria-label="Loading your trades" className="motion-safe:animate-pulse">
+      <div className="mb-6 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-8 lg:border-b lg:border-border">
+        <div className="flex gap-6 border-b border-border pb-3 lg:border-b-0">
+          <Placeholder className="h-5 w-24" />
+          <Placeholder className="h-5 w-24" />
+        </div>
+        <Placeholder className="h-11 w-full sm:max-w-md lg:mb-1.5 lg:h-9" />
+      </div>
+      <div className="panel">
+        <div className="border-b border-border px-4 py-3 lg:px-6">
+          <Placeholder className="h-4 w-1/3" />
+        </div>
+        <ul className="divide-y divide-border">
+          {Array.from({ length: placeholderRowCount }, (_, index) => (
+            <li key={index} className="flex items-center justify-between gap-4 px-4 py-4 lg:px-6">
+              <Placeholder className="h-5 w-2/5 md:w-1/4" />
+              <Placeholder className="h-6 w-28 rounded-full" />
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
 }
 
 function ViewTabs({
@@ -169,9 +215,8 @@ function ViewTabs({
           const isCurrent = tab.view === params.view;
           return (
             <li key={tab.view}>
-              <Link
-                href={tradesHref({ ...params, view: tab.view })}
-                scroll={false}
+              <ListViewLink
+                params={{ ...params, view: tab.view }}
                 aria-current={isCurrent ? "page" : undefined}
                 className={`type-body -mb-px block border-b-2 pb-3 font-medium transition-colors ${
                   isCurrent
@@ -180,7 +225,7 @@ function ViewTabs({
                 }`}
               >
                 {tab.label} <span className="text-muted">({counts[tab.view]})</span>
-              </Link>
+              </ListViewLink>
             </li>
           );
         })}
@@ -190,14 +235,18 @@ function ViewTabs({
 }
 
 /**
- * Plain GET form, so searching works before hydration. Hidden fields carry the
- * current tab and sort so a new search keeps them.
+ * Searches on submit (Enter), keeping the current tab and sort. Handled in
+ * the browser, so it filters the loaded trades without a server round trip.
  */
 function SearchForm({ params }: { params: ListParams }) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const search = String(new FormData(event.currentTarget).get("q") ?? "").trim();
+    showListView({ ...params, search });
+  }
+
   return (
-    <form action="/trades" role="search" className="w-full sm:max-w-md lg:pb-1.5">
-      {params.view === "archived" && <input type="hidden" name="view" value="archived" />}
-      {params.sortOrder === "oldest" && <input type="hidden" name="sort" value="oldest" />}
+    <form action="/trades" role="search" onSubmit={handleSubmit} className="w-full sm:max-w-md lg:pb-1.5">
       <label htmlFor="trade-search" className="sr-only">
         Search by item name, transaction ID, contract address or counterparty
       </label>
@@ -219,6 +268,8 @@ function SearchForm({ params }: { params: ListParams }) {
           id="trade-search"
           type="search"
           name="q"
+          // Re-keyed so going back or forward shows that view's search.
+          key={params.search}
           defaultValue={params.search}
           placeholder="Search for item, transaction ID, or address"
           autoComplete="off"
@@ -234,12 +285,12 @@ function TradeList({
   trades,
   account,
   params,
-  serverNow,
+  now,
 }: {
   trades: Trade[];
   account: Address;
   params: ListParams;
-  serverNow: number;
+  now: number;
 }) {
   return (
     <>
@@ -263,7 +314,7 @@ function TradeList({
         <ul className="col-span-full grid grid-cols-subgrid divide-y divide-border">
           {trades.map((trade) => (
             <li key={trade.escrow} className="col-span-full grid grid-cols-subgrid">
-              <TradeRow trade={trade} account={account} serverNow={serverNow} />
+              <TradeRow trade={trade} account={account} now={now} />
             </li>
           ))}
         </ul>
@@ -273,7 +324,7 @@ function TradeList({
 }
 
 /**
- * Toggles between newest and oldest first. Uses `scroll={false}` so re-sorting
+ * Toggles between newest and oldest first, in the browser, so re-sorting
  * keeps the reader's place on the page.
  */
 function SortLink({
@@ -289,9 +340,8 @@ function SortLink({
   const isNewest = params.sortOrder === "newest";
 
   return (
-    <Link
-      href={tradesHref({ ...params, sortOrder: isNewest ? "oldest" : "newest" })}
-      scroll={false}
+    <ListViewLink
+      params={{ ...params, sortOrder: isNewest ? "oldest" : "newest" }}
       aria-label={`Sorted by created date, ${params.sortOrder} first. Sort ${isNewest ? "oldest" : "newest"} first`}
       className={`items-center gap-1 transition-colors hover:text-foreground focus-visible:text-foreground ${className}`}
     >
@@ -308,7 +358,7 @@ function SortLink({
       >
         <path d="M12 5v14M5 12l7 7 7-7" />
       </svg>
-    </Link>
+    </ListViewLink>
   );
 }
 
@@ -317,7 +367,7 @@ function getCounterparty(trade: Trade, account: Address) {
   return isAddressEqual(trade.seller, account) ? trade.buyer : trade.seller;
 }
 
-function TradeRow({ trade, account, serverNow }: { trade: Trade; account: Address; serverNow: number }) {
+function TradeRow({ trade, account, now }: { trade: Trade; account: Address; now: number }) {
   const isSeller = isAddressEqual(trade.seller, account);
   const counterparty = getCounterparty(trade, account);
   const price = `${formatEther(trade.itemPrice)} MON`;
@@ -345,7 +395,7 @@ function TradeRow({ trade, account, serverNow }: { trade: Trade; account: Addres
       </span>
       <TradeTimeCell
         dateTime={trade.createdAt.toISOString()}
-        serverNow={serverNow}
+        now={now}
         className="hidden whitespace-nowrap text-muted lg:block"
       />
       <span className="hidden items-center gap-1 md:flex">

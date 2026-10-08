@@ -3,10 +3,11 @@ import { getAddress, type Address, type Hash } from "viem";
 import type { Trade } from "@/lib/trades";
 
 /**
- * tradeguardian-backend, which stores each trade's off-chain details. Server
- * only: the variable isn't `NEXT_PUBLIC_`, so it's undefined in the browser.
+ * tradeguardian-backend, which stores each trade's off-chain details. Called
+ * from the browser, so the backend must allow the site's origin (its
+ * `CORS_ORIGINS`).
  */
-const backendUrl = process.env.BACKEND_URL;
+const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 /** The backend couldn't be reached, isn't configured, or returned an error. */
 export class TradesApiError extends Error {
@@ -26,7 +27,7 @@ type StoredTrade = {
 };
 
 async function request(path: string, init?: RequestInit) {
-  if (!backendUrl) throw new TradesApiError("BACKEND_URL is not set.");
+  if (!backendUrl) throw new TradesApiError("NEXT_PUBLIC_BACKEND_URL is not set.");
   try {
     return await fetch(`${backendUrl}${path}`, {
       ...init,
@@ -47,7 +48,7 @@ async function getErrorDetail(response: Response) {
 
 /**
  * The stored details plus placeholders for the on-chain state, which
- * `syncTradeFromChain` fills in: the backend only stores what the escrow
+ * `withEscrowState` fills in: the backend only stores what the escrow
  * doesn't.
  */
 function toTrade(stored: StoredTrade): Trade {

@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-/** The page title and actions. Shared with the loading screen, so they show straight away. */
+/** The page title and actions, which don't depend on the trades, so they show straight away. */
 export function TradesIntro() {
   return (
     <section className="pt-(--header-height)">

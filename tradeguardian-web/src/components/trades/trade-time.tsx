@@ -8,7 +8,8 @@ import { formatAge, formatTimestamp, type TimestampFormat } from "@/lib/time";
 /*
  * Times are shown the way Etherscan does: an age ("2 days 3 hrs ago") and a
  * timestamp in UTC, the viewer's local time, or Unix seconds. Like Etherscan,
- * ages are as of the page request and don't update while the page is open.
+ * ages are as of when the trade was loaded and don't update while the page is
+ * open.
  *
  * The server doesn't know the viewer's time zone, so it shows local times as
  * UTC; after hydration React re-renders once with the viewer's local time.
@@ -34,17 +35,17 @@ const timestampFormatLabels: Record<TimestampFormat, string> = {
 type TimeProps = {
   /** ISO timestamp. */
   dateTime: string;
-  /** Request time on the server; ages are measured from it. */
-  serverNow: number;
+  /** When the trade was loaded; ages are measured from it. */
+  now: number;
   className?: string;
 };
 
-function useTimeParts({ dateTime, serverNow }: TimeProps) {
+function useTimeParts({ dateTime, now }: TimeProps) {
   const isClient = useIsClient();
   const date = new Date(dateTime);
 
   return {
-    age: formatAge(date.getTime(), serverNow),
+    age: formatAge(date.getTime(), now),
     /** Local time isn't knowable on the server, so it shows UTC until hydration. */
     timestamp: (format: TimestampFormat) =>
       formatTimestamp(date, format === "local" && !isClient ? "utc" : format),

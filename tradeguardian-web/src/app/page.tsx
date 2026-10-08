@@ -55,7 +55,8 @@ const tradeSteps: TradeStep[] = [
 ];
 
 /**
- * TradeGuardian landing page. Rendered entirely on the server.
+ * TradeGuardian landing page. Static content with no data, so it's
+ * prerendered at build time.
  */
 export default function HomePage() {
   return (

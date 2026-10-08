@@ -7,12 +7,12 @@ const stepLabelWidths = ["w-28", "w-36", "w-64", "w-60"];
 const detailRowCount = 9;
 
 /**
- * Shown under the layout's back link, heading and explorer link while a trade
- * page loads its trade from the backend and the chain. Placeholders only, no
- * text, in the same place and size as the loaded trade: the step markers and
- * names, and the trade's details.
+ * Stands in for the trade panel under the layout's back link, heading and
+ * explorer link while the trade loads. Placeholders only, no text, in the
+ * same place and size as the loaded trade: the step markers and names, and
+ * the trade's details.
  */
-export default function TradeLoading() {
+export function TradePanelPlaceholder() {
   return (
     <div
       role="status"

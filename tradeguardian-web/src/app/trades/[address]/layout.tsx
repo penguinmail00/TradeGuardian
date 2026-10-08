@@ -7,10 +7,10 @@ import { explorerName, getExplorerAddressUrl } from "@/lib/explorer";
 
 /**
  * Everything on a trade page that only needs the escrow's address from the
- * URL: the back link, heading and explorer link. As a layout it renders
- * straight away and stays while the page loads (`loading.tsx`) or fails to
- * (`error.tsx`), so the explorer link always works, even when the backend
- * can't be reached. The page fills in the trade below.
+ * URL: the back link, heading and explorer link. They render straight away
+ * and stay while the trade loads or fails to, so the explorer link always
+ * works, even when the backend can't be reached. The page fills in the trade
+ * below, in the browser.
  */
 export default async function TradeLayout({ children, params }: LayoutProps<"/trades/[address]">) {
   const { address } = await params;

@@ -3,9 +3,10 @@
 import { useEffect } from "react";
 
 /**
- * Shown under the layout's back link, heading and explorer link when the
- * trade can't be loaded, e.g. the backend is down. The explorer link above
- * still works, since it only needs the address in the URL.
+ * Shown under the layout's back link, heading and explorer link if the trade
+ * panel crashes while rendering. A backend that can't be reached is handled
+ * in `TradeView` instead. The explorer link above still works, since it only
+ * needs the address in the URL.
  */
 export default function TradeError({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
   useEffect(() => {

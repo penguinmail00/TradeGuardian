@@ -32,7 +32,7 @@ export const wagmiConfig = getDefaultConfig({
   projectId: walletConnectProjectId,
   chains: [monadTestnet, monad],
   ssr: true,
-  // In a cookie rather than localStorage, so server components can tell
-  // which wallet is connected (see `getConnectedAccount`).
+  // In a cookie, so `AccountChangeHandler` can read the stored wallet before
+  // wagmi reconnects it.
   storage: createStorage({ storage: cookieStorage }),
 });
