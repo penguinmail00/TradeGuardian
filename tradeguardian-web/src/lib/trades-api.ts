@@ -1,4 +1,4 @@
-import { getAddress, type Address, type Hash } from "viem";
+import { getAddress, type Address, type Hash, type Hex } from "viem";
 
 import { BackendApiError, backendRequest, getErrorDetail } from "@/lib/backend-api";
 import type { Trade } from "@/lib/trades";
@@ -38,7 +38,7 @@ function toTrade(stored: StoredTrade): Trade {
   };
 }
 
-/** Trades where `account` is the seller or the buyer, newest first. */
+/** Trades `account` created or added, newest first. */
 export async function fetchTrades(account: Address): Promise<Trade[]> {
   const response = await backendRequest(`/trades?address=${account}`);
   if (!response.ok) throw new BackendApiError(await getErrorDetail(response));
@@ -73,4 +73,24 @@ export async function saveTrade(input: {
   if (!response.ok) return { ok: false, message: await getErrorDetail(response) };
   const stored: StoredTrade = await response.json();
   return { ok: true, escrow: getAddress(stored.escrow) };
+}
+
+/**
+ * Adds the trade to `account`'s list. `signature` is `account`'s signature of
+ * `addTradeMessage` for this trade and `issuedAt`; the backend checks it and
+ * that `account` is the buyer or seller. Adding a listed trade again succeeds.
+ */
+export async function addTradeToList(input: {
+  escrow: Address;
+  account: Address;
+  issuedAt: string;
+  signature: Hex;
+}): Promise<{ ok: true } | { ok: false; message: string }> {
+  const response = await backendRequest(`/trades/${input.escrow}/members/${input.account}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ issuedAt: input.issuedAt, signature: input.signature }),
+  });
+  if (!response.ok) return { ok: false, message: await getErrorDetail(response) };
+  return { ok: true };
 }

@@ -47,7 +47,7 @@ function useLiveTrades(trades: Trade[] | undefined) {
 }
 
 /**
- * The trades where `account` is the seller or the buyer, newest first, with
+ * The trades `account` created or added, newest first, with
  * their escrows' current state. `loadedAt` is when the list was fetched, which
  * ages are measured from.
  */

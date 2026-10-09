@@ -88,8 +88,8 @@ function subscribeToNothing() {
 }
 
 /**
- * Lists the connected wallet's trades (where it's the seller or buyer) in two
- * tabs, unarchived and archived (`?view=archived`), sorted by creation date
+ * Lists the trades the connected wallet created or added in two tabs,
+ * unarchived and archived (`?view=archived`), sorted by creation date
  * (`?sort=oldest`, newest by default) and filtered by item name or address
  * (`?q=`). Loads the trades in the browser and switches tabs, sorting and
  * search there too, keeping the URL in sync.

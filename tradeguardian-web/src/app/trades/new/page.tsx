@@ -12,8 +12,9 @@ export const metadata: Metadata = {
 };
 
 /**
- * Adds an existing escrow by its contract address. The form checks on-chain
- * that the connected wallet is the escrow's buyer or seller.
+ * Adds an existing escrow to the connected wallet's list by its contract
+ * address. The form checks on-chain that the wallet is the escrow's buyer or
+ * seller, and the wallet signs the request.
  */
 export default function AddTradePage() {
   return (
