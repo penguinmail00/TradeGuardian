@@ -30,7 +30,8 @@ function useLiveTrades(trades: Trade[] | undefined) {
   const reads = useReadContracts({
     contracts,
     batchSize: multicallBatchSize,
-    query: { enabled: contracts.length > 0 },
+    // Like the backend queries, returning to the tab doesn't reload state.
+    query: { enabled: contracts.length > 0, refetchOnWindowFocus: false },
   });
 
   const liveTrades = useMemo(
@@ -57,6 +58,9 @@ export function useMyTrades(account: Address | undefined) {
     queryFn: () => fetchTrades(account!),
     enabled: Boolean(account),
     retry: 1,
+    // Returning to the tab doesn't reload the list, so its ages and statuses
+    // stay as of when it was loaded.
+    refetchOnWindowFocus: false,
   });
   const live = useLiveTrades(stored.data);
 
@@ -78,6 +82,8 @@ export function useTrade(escrow: Address) {
     // React Query doesn't allow undefined data, so a missing trade is null.
     queryFn: async () => (await fetchTrade(escrow)) ?? null,
     retry: 1,
+    // Like the list, returning to the tab doesn't reload the trade.
+    refetchOnWindowFocus: false,
   });
   const storedTrades = useMemo(() => (stored.data ? [stored.data] : undefined), [stored.data]);
   const live = useLiveTrades(storedTrades);
