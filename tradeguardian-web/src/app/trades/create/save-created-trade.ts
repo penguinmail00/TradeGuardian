@@ -1,6 +1,7 @@
 import { isAddressEqual, type Address, type Hash } from "viem";
 
-import { saveTrade, TradesApiError } from "@/lib/trades-api";
+import { BackendApiError } from "@/lib/backend-api";
+import { saveTrade } from "@/lib/trades-api";
 
 import type { ItemDetails } from "./create-trade";
 
@@ -19,7 +20,7 @@ export async function saveCreatedTrade(input: {
   try {
     saved = await saveTrade({ transactionHash: input.transactionHash, ...input.details });
   } catch (error) {
-    if (!(error instanceof TradesApiError)) throw error;
+    if (!(error instanceof BackendApiError)) throw error;
     return { ok: false, message: "Couldn't reach the server. Try again in a moment." };
   }
   if (!saved.ok) return saved;

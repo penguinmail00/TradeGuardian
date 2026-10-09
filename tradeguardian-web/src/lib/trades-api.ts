@@ -1,18 +1,7 @@
 import { getAddress, type Address, type Hash } from "viem";
 
+import { BackendApiError, backendRequest, getErrorDetail } from "@/lib/backend-api";
 import type { Trade } from "@/lib/trades";
-
-/**
- * tradeguardian-backend, which stores each trade's off-chain details. Called
- * from the browser, so the backend must allow the site's origin (its
- * `CORS_ORIGINS`).
- */
-const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-
-/** The backend couldn't be reached, isn't configured, or returned an error. */
-export class TradesApiError extends Error {
-  name = "TradesApiError";
-}
 
 /** A trade as the backend returns it: lowercase addresses, wei as a string. */
 type StoredTrade = {
@@ -25,26 +14,6 @@ type StoredTrade = {
   itemPrice: string;
   createdAt: string;
 };
-
-async function request(path: string, init?: RequestInit) {
-  if (!backendUrl) throw new TradesApiError("NEXT_PUBLIC_BACKEND_URL is not set.");
-  try {
-    return await fetch(`${backendUrl}${path}`, {
-      ...init,
-      // Trades change on every save, so never serve a cached response.
-      cache: "no-store",
-      signal: AbortSignal.timeout(15_000),
-    });
-  } catch (error) {
-    throw new TradesApiError(`Couldn't reach the backend: ${error}`);
-  }
-}
-
-/** FastAPI puts the reason in `detail`. */
-async function getErrorDetail(response: Response) {
-  const body = await response.json().catch(() => undefined);
-  return typeof body?.detail === "string" ? body.detail : `The backend returned ${response.status}.`;
-}
 
 /**
  * The stored details plus placeholders for the on-chain state, which
@@ -71,16 +40,16 @@ function toTrade(stored: StoredTrade): Trade {
 
 /** Trades where `account` is the seller or the buyer, newest first. */
 export async function fetchTrades(account: Address): Promise<Trade[]> {
-  const response = await request(`/trades?address=${account}`);
-  if (!response.ok) throw new TradesApiError(await getErrorDetail(response));
+  const response = await backendRequest(`/trades?address=${account}`);
+  if (!response.ok) throw new BackendApiError(await getErrorDetail(response));
   return ((await response.json()) as StoredTrade[]).map(toTrade);
 }
 
 /** The trade for an escrow, or undefined if none was saved. */
 export async function fetchTrade(escrow: Address): Promise<Trade | undefined> {
-  const response = await request(`/trades/${escrow}`);
+  const response = await backendRequest(`/trades/${escrow}`);
   if (response.status === 404) return undefined;
-  if (!response.ok) throw new TradesApiError(await getErrorDetail(response));
+  if (!response.ok) throw new BackendApiError(await getErrorDetail(response));
   return toTrade(await response.json());
 }
 
@@ -95,7 +64,7 @@ export async function saveTrade(input: {
   itemName: string;
   description: string;
 }): Promise<{ ok: true; escrow?: Address } | { ok: false; message: string }> {
-  const response = await request("/trades", {
+  const response = await backendRequest("/trades", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),

@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-/** Validation rules shared by the form's HTML attributes and the server. */
+/**
+ * Validation rules shared by the form's HTML attributes and its validation.
+ * tradeguardian-backend enforces the same limits.
+ */
 export const supportRequestLimits = {
   email: 254,
   subject: 150,
@@ -33,14 +36,3 @@ export const supportRequestSchema = z.object({
 });
 
 export type SupportRequest = z.infer<typeof supportRequestSchema>;
-
-export type SupportRequestState =
-  | { status: "idle" }
-  | { status: "success" }
-  | {
-      status: "error";
-      message: string;
-      fieldErrors: Partial<Record<keyof SupportRequest, string[]>>;
-      /** Echoed back so the fields keep what the user typed. */
-      values: Partial<Record<keyof SupportRequest, string>>;
-    };

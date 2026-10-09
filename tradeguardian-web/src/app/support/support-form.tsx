@@ -1,28 +1,49 @@
 "use client";
 
-import { useActionState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { type FormEvent, useState } from "react";
+import { z } from "zod";
 
-import { submitSupportRequest } from "./actions";
+import { sendSupportRequest } from "@/lib/support-api";
+
 import {
   type SupportRequest,
-  type SupportRequestState,
   supportRequestLimits,
+  supportRequestSchema,
 } from "./support-request";
 
-const initialState: SupportRequestState = { status: "idle" };
+type FieldErrors = Partial<Record<keyof SupportRequest, string[]>>;
 
 /**
- * Support request form. Submits through a Server Action, so it also works
- * before JavaScript loads; client state only drives errors and the pending
- * button.
+ * Support request form. Validates in the browser, then sends the request
+ * straight to the backend.
  */
 export function SupportForm() {
-  const [state, formAction, isPending] = useActionState(
-    submitSupportRequest,
-    initialState,
-  );
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const {
+    mutate: send,
+    isPending,
+    isSuccess,
+    isError,
+  } = useMutation({ mutationFn: sendSupportRequest });
 
-  if (state.status === "success") {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const result = supportRequestSchema.safeParse({
+      email: readField(formData, "email"),
+      subject: readField(formData, "subject"),
+      description: readField(formData, "description"),
+    });
+    if (!result.success) {
+      setFieldErrors(z.flattenError(result.error).fieldErrors);
+      return;
+    }
+    setFieldErrors({});
+    send(result.data);
+  }
+
+  if (isSuccess) {
     return (
       <div role="status" className="panel p-6 lg:p-8">
         <h2 className="type-h3">Request sent</h2>
@@ -34,19 +55,24 @@ export function SupportForm() {
     );
   }
 
-  const hasError = state.status === "error";
-  const values = hasError ? state.values : {};
-  const fieldErrors = hasError ? state.fieldErrors : {};
+  const hasFieldErrors = Object.keys(fieldErrors).length > 0;
+  const errorMessage = hasFieldErrors
+    ? "Check the highlighted fields and try again."
+    : isError
+      ? "We couldn't send your request. Please try again in a moment."
+      : undefined;
 
   return (
     <form
-      action={formAction}
+      // POST, so a submit before hydration can't put the email in the URL.
+      method="post"
+      onSubmit={handleSubmit}
       noValidate
       className="panel flex flex-col gap-6 p-6 lg:p-8"
     >
-      {hasError && (
+      {errorMessage && (
         <p role="alert" className="type-small text-danger">
-          {state.message}
+          {errorMessage}
         </p>
       )}
 
@@ -59,9 +85,7 @@ export function SupportForm() {
           <input
             {...fieldProps}
             type="email"
-            autoComplete="email"
             maxLength={supportRequestLimits.email}
-            defaultValue={values.email}
             required
           />
         )}
@@ -73,7 +97,6 @@ export function SupportForm() {
             {...fieldProps}
             type="text"
             maxLength={supportRequestLimits.subject}
-            defaultValue={values.subject}
             required
           />
         )}
@@ -89,7 +112,6 @@ export function SupportForm() {
             {...fieldProps}
             rows={6}
             maxLength={supportRequestLimits.description}
-            defaultValue={values.description}
             required
           />
         )}
@@ -107,10 +129,18 @@ export function SupportForm() {
   );
 }
 
+function readField(formData: FormData, name: keyof SupportRequest) {
+  const value = formData.get(name);
+  return typeof value === "string" ? value : "";
+}
+
 type FieldControlProps = {
   id: string;
   name: keyof SupportRequest;
   className: string;
+  autoComplete: "off";
+  autoCorrect: "off";
+  spellCheck: false;
   "aria-invalid": boolean;
   "aria-describedby"?: string;
 };
@@ -139,6 +169,10 @@ function Field({
         id,
         name,
         className: "field",
+        // No suggestions, autocomplete or spell correction on any field.
+        autoComplete: "off",
+        autoCorrect: "off",
+        spellCheck: false,
         "aria-invalid": Boolean(error),
         "aria-describedby": error ? errorId : undefined,
       })}
