@@ -177,12 +177,6 @@ export function CreateTradeForm() {
 
   return (
     <form onSubmit={handleSubmit} noValidate className="panel flex flex-col gap-6 p-6 lg:p-8">
-      {hasError && state.message && (
-        <p role="alert" className="type-small break-words text-danger">
-          {state.message}
-        </p>
-      )}
-
       <Field name="itemName" label="Item name" error={fieldErrors.itemName}>
         {(fieldProps) => (
           <input
@@ -278,6 +272,13 @@ export function CreateTradeForm() {
           </div>
         )}
       </Field>
+
+      {/* Next to the button, where the eye is after submitting. */}
+      {hasError && state.message && (
+        <p role="alert" className="type-small break-words text-danger">
+          {state.message}
+        </p>
+      )}
 
       <button
         type="submit"
