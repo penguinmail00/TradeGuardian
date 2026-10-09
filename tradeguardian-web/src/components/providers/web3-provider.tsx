@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { WagmiProvider } from "wagmi";
 
+import { PendingTradeSaveResumer } from "@/components/trades/pending-trade-save-resumer";
 import { AccountChangeHandler } from "@/components/wallet/account-change-handler";
 import { wagmiConfig } from "@/lib/wagmi-config";
 
@@ -28,6 +29,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
     <WagmiProvider config={wagmiConfig}>
       <AccountChangeHandler />
       <QueryClientProvider client={queryClient}>
+        <PendingTradeSaveResumer />
         <RainbowKitProvider theme={rainbowTheme} modalSize="compact">
           {children}
         </RainbowKitProvider>

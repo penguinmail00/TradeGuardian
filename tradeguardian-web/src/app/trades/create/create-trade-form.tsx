@@ -16,6 +16,7 @@ import {
 import { useAccount, usePublicClient, useWriteContract } from "wagmi";
 
 import { escrowFactoryAbi, escrowFactoryAddress, escrowFactoryChain } from "@/lib/escrow-factory";
+import { addPendingTradeSave, removePendingTradeSave } from "@/lib/pending-trade-saves";
 import { tradesQueryKey } from "@/lib/use-trades";
 import { wagmiConfig } from "@/lib/wagmi-config";
 
@@ -116,8 +117,14 @@ export function CreateTradeForm() {
           args: [seller, buyer, itemPrice],
           chainId: escrowFactoryChain.id,
         });
+        // From here the escrow can exist without saved details, so keep them
+        // until the save succeeds, in case the page closes first.
+        addPendingTradeSave(account, { transactionHash, ...details.data, sentAt: Date.now() });
         const receipt = await publicClient.waitForTransactionReceipt({ hash: transactionHash });
-        if (receipt.status !== "success") return fail({}, "The transaction failed.");
+        if (receipt.status !== "success") {
+          removePendingTradeSave(account, transactionHash);
+          return fail({}, "The transaction failed.");
+        }
         [escrow] = parseEventLogs({
           abi: escrowFactoryAbi,
           eventName: "EscrowCreated",
@@ -132,14 +139,19 @@ export function CreateTradeForm() {
           error instanceof BaseError ? error.shortMessage : "Couldn't send the transaction. Try again.",
         );
       }
-      if (!escrow) return fail({}, "The transaction confirmed, but no trade was created.");
+      if (!escrow) {
+        removePendingTradeSave(account, transactionHash);
+        return fail({}, "The transaction confirmed, but no trade was created.");
+      }
 
       // The escrow exists on-chain either way, so a failed save still gives
       // the user its address to add or share.
       const saved = await saveCreatedTrade({ transactionHash, escrow, details: details.data });
+      // A failed save stays pending, so it's retried on a later visit.
       if (!saved.ok) {
         return fail({}, `Your trade was created at ${escrow}, but its details couldn't be saved. ${saved.message}`);
       }
+      removePendingTradeSave(account, transactionHash);
 
       // So My trades lists the new trade.
       await queryClient.invalidateQueries({ queryKey: tradesQueryKey });
