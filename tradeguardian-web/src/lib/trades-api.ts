@@ -13,6 +13,8 @@ type StoredTrade = {
   buyer: string;
   itemPrice: string;
   createdAt: string;
+  /** Whether the requested wallet archived it; null when none was given. */
+  archived: boolean | null;
 };
 
 /**
@@ -38,19 +40,66 @@ function toTrade(stored: StoredTrade): Trade {
   };
 }
 
-/** Trades `account` created or added, newest first. */
-export async function fetchTrades(account: Address): Promise<Trade[]> {
-  const response = await backendRequest(`/trades?address=${account}`);
+/** Trades per page of My Trades. Matches `DEFAULT_PAGE_SIZE` in tradeguardian-backend. */
+export const tradesPageSize = 10;
+
+/** Longest search the backend accepts. Matches the `q` limit in tradeguardian-backend. */
+export const tradeSearchMaxLength = 200;
+
+export type TradeListView = "trades" | "archived";
+export type TradeSortOrder = "newest" | "oldest";
+
+export type TradeListQuery = {
+  view: TradeListView;
+  sortOrder: TradeSortOrder;
+  /** Matched against the item name, transaction ID, contract and counterparty. */
+  search: string;
+  /** From 1. */
+  page: number;
+};
+
+export type TradePage = {
+  trades: Trade[];
+  /** Matching trades in `view`, across all pages. */
+  total: number;
+  /** Matching trades in each view, for the tabs. */
+  counts: Record<TradeListView, number>;
+};
+
+/**
+ * One page of the trades `account` created or added that match `search`:
+ * unarchived, or archived with `view: "archived"`. The backend searches,
+ * sorts and pages them.
+ */
+export async function fetchTrades(account: Address, query: TradeListQuery): Promise<TradePage> {
+  const params = new URLSearchParams({
+    address: account,
+    view: query.view,
+    sort: query.sortOrder,
+    q: query.search,
+    page: String(query.page),
+    pageSize: String(tradesPageSize),
+  });
+  const response = await backendRequest(`/trades?${params}`);
   if (!response.ok) throw new BackendApiError(await getErrorDetail(response));
-  return ((await response.json()) as StoredTrade[]).map(toTrade);
+  const page: { trades: StoredTrade[]; total: number; counts: Record<TradeListView, number> } =
+    await response.json();
+  return { trades: page.trades.map(toTrade), total: page.total, counts: page.counts };
 }
 
-/** The trade for an escrow, or undefined if none was saved. */
-export async function fetchTrade(escrow: Address): Promise<Trade | undefined> {
-  const response = await backendRequest(`/trades/${escrow}`);
+/**
+ * The trade for an escrow, and whether `account` archived it (false without
+ * an account), or undefined if none was saved.
+ */
+export async function fetchTrade(
+  escrow: Address,
+  account: Address | undefined,
+): Promise<{ trade: Trade; isArchived: boolean } | undefined> {
+  const response = await backendRequest(account ? `/trades/${escrow}?address=${account}` : `/trades/${escrow}`);
   if (response.status === 404) return undefined;
   if (!response.ok) throw new BackendApiError(await getErrorDetail(response));
-  return toTrade(await response.json());
+  const stored: StoredTrade = await response.json();
+  return { trade: toTrade(stored), isArchived: stored.archived === true };
 }
 
 /**
@@ -90,6 +139,28 @@ export async function addTradeToList(input: {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ issuedAt: input.issuedAt, signature: input.signature }),
+  });
+  if (!response.ok) return { ok: false, message: await getErrorDetail(response) };
+  return { ok: true };
+}
+
+/**
+ * Archives or unarchives the trade in `account`'s list. `signature` is
+ * `account`'s signature of `archiveTradeMessage` for this trade, `archived`
+ * and `issuedAt`; the backend checks it and that the trade is in the list.
+ * Setting the current value again succeeds.
+ */
+export async function setTradeArchived(input: {
+  escrow: Address;
+  account: Address;
+  archived: boolean;
+  issuedAt: string;
+  signature: Hex;
+}): Promise<{ ok: true } | { ok: false; message: string }> {
+  const response = await backendRequest(`/trades/${input.escrow}/archived/${input.account}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ archived: input.archived, issuedAt: input.issuedAt, signature: input.signature }),
   });
   if (!response.ok) return { ok: false, message: await getErrorDetail(response) };
   return { ok: true };

@@ -7,7 +7,7 @@ import { useAccount } from "wagmi";
 
 import { TradePanelPlaceholder } from "@/components/trades/trade-panel-placeholder";
 import { TradeSteps } from "@/components/trades/trade-steps";
-import { useArchivedTrades } from "@/lib/archived-trades";
+import { useArchiveTrade } from "@/lib/archive-trade";
 import { canArchive, untitledTradeName, type Trade } from "@/lib/trades";
 import { useTrade } from "@/lib/use-trades";
 
@@ -31,8 +31,8 @@ function TradeDetails({ escrow }: { escrow: Address }) {
   // waiting for it keeps the role and actions from popping in afterwards.
   const isMounted = useSyncExternalStore(subscribeToNothing, () => true, () => false);
   const isWalletPending = !isMounted || status === "connecting" || status === "reconnecting";
-  const { trade, isLoading, isError, refetch, loadedAt } = useTrade(escrow);
-  const { isArchived, setArchived } = useArchivedTrades(account);
+  const { trade, isArchived, isLoading, isError, refetch, loadedAt } = useTrade(escrow, account);
+  const archive = useArchiveTrade(account);
   useDocumentTitle(trade ? trade.itemName || untitledTradeName : undefined);
 
   if (isError) {
@@ -55,7 +55,13 @@ function TradeDetails({ escrow }: { escrow: Address }) {
       </div>
 
       {account && canArchive(trade) && (
-        <ArchiveButton trade={trade} isArchived={isArchived(trade)} onChange={setArchived} />
+        <ArchiveButton
+          trade={trade}
+          isArchived={isArchived}
+          onChange={archive.setArchived}
+          isPending={archive.isPending}
+          error={archive.error}
+        />
       )}
     </>
   );
@@ -84,24 +90,38 @@ function TradeNotFound({ isValidAddress }: { isValidAddress: boolean }) {
   );
 }
 
-/** Archives or unarchives a finished trade for the connected wallet, in this browser. */
+/**
+ * Archives or unarchives a finished trade in the connected wallet's list,
+ * after the wallet signs. The error from the last try shows beside it.
+ */
 function ArchiveButton({
   trade,
   isArchived,
   onChange,
+  isPending,
+  error,
 }: {
   trade: Trade;
   isArchived: boolean;
   onChange: (trade: Trade, shouldArchive: boolean) => void;
+  isPending: boolean;
+  error: string | undefined;
 }) {
   return (
-    <div className="mt-6 flex sm:justify-end">
+    <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+      {error && (
+        <p role="alert" className="type-small text-danger">
+          {error}
+        </p>
+      )}
       <button
         type="button"
         onClick={() => onChange(trade, !isArchived)}
+        aria-busy={isPending}
+        disabled={isPending}
         className="btn btn-secondary w-full shrink-0 sm:w-auto"
       >
-        {isArchived ? "Unarchive trade" : "Archive trade"}
+        {isPending ? (isArchived ? "Unarchiving…" : "Archiving…") : isArchived ? "Unarchive trade" : "Archive trade"}
       </button>
     </div>
   );

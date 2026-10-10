@@ -16,7 +16,7 @@ You are an expert full-stack developer proficient in TypeScript, React, Next.js,
     - A page with data or per-user content has a thin Server Component `page.tsx` that only exports static `metadata` and renders a `'use client'` component; that component does all data fetching and interaction in the browser. Pages with only static content (home, FAQ) have no data and are prerendered at build time.
     - Fetch data in the browser with TanStack Query (backend) and wagmi hooks (chain reads, batched into one multicall). The browser calls tradeguardian-backend directly at `NEXT_PUBLIC_BACKEND_URL`.
     - Show loading placeholders while data loads in the client component, not via `loading.tsx`.
-    - Interactions on data the page already has (tabs, sorting, search) update in the browser and keep the URL in sync with `window.history`, without a server round trip.
+    - List interactions (tabs, sorting, search, pages) update in the browser and keep the URL in sync with `window.history`, without loading a new page; the list fetches each view from the backend, which searches, sorts and pages.
     - Don't add server actions or Route Handlers for app data. The only exception is something that needs a server-side secret, such as sending an email.
 
     ### Optimization and Best Practices
