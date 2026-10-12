@@ -1,5 +1,8 @@
+import Image from "next/image";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
+import { HeroShield } from "@/components/hero/hero-shield";
 import { SiteFooter } from "@/components/site-shell/site-footer";
 import { SiteHeader } from "@/components/site-shell/site-header";
 import { CreateTradeLink } from "@/components/trades/create-trade-link";
@@ -11,23 +14,33 @@ import {
 type Feature = {
   title: string;
   description: string;
+  icon: ReactNode;
 };
 
 const features: Feature[] = [
   {
-    title: "Protected payments",
-    description:
-      "Funds are held securely and only released once both sides confirm the trade is complete.",
+    title: "Built on Monad",
+    description: "Fast settlement and low gas fees for every trade.",
+    // Monad's mark in its own purple; brand marks shouldn't be recolored.
+    icon: (
+      <Image
+        src="/images/chains/monad.svg"
+        alt=""
+        width={33}
+        height={32}
+        className="size-6"
+      />
+    ),
   },
   {
-    title: "Verified counterparties",
-    description:
-      "Know who you are trading with before you commit, with identity and reputation checks built in.",
+    title: "Instant payout",
+    description: "No more middlemen. Save your time and money.",
+    icon: <LightningIcon />,
   },
   {
-    title: "Fair dispute resolution",
-    description:
-      "If something goes wrong, a transparent process makes sure the outcome is fair to everyone.",
+    title: "Powered by game theory",
+    description: "Removes the incentive to scam, for buyers and sellers alike.",
+    icon: <ChessKnightIcon />,
   },
 ];
 
@@ -78,7 +91,10 @@ function Hero() {
       <HeroBackdrop />
       {/* Matches blockstream.com's hero: left-aligned in a centered 1140px
           column (30px gutters below that), heading 214px below the header. */}
-      <div className="mx-auto w-[calc(100%-60px)] max-w-[1140px] py-24 min-[1090px]:pt-[214px] min-[1090px]:pb-32">
+      <div className="relative mx-auto w-[calc(100%-60px)] max-w-[1140px] py-24 min-[1090px]:pt-[214px] min-[1090px]:pb-32">
+        {/* Centered on the copy (the column's padding is 214px top, 128px
+            bottom). Desktop only: below 1090px the copy takes the full width. */}
+        <HeroShield className="absolute top-[calc(50%+43px)] right-[100px] hidden -translate-y-1/2 min-[1090px]:block" />
         <h1 className="type-hero max-w-[627px] text-balance">
           Trade with confidence.
         </h1>
@@ -143,11 +159,49 @@ function FeatureGrid({ items }: { items: Feature[] }) {
       <div className="mx-auto grid w-[calc(100%-60px)] max-w-[1140px] gap-6 py-16 md:grid-cols-3 lg:py-24">
         {items.map((feature) => (
           <article key={feature.title} className="panel p-6 lg:p-8">
-            <h2 className="type-h3">{feature.title}</h2>
+            <div className="grid size-12 place-items-center rounded-md bg-tint-cyan text-accent">
+              {feature.icon}
+            </div>
+            <h2 className="type-h3 mt-5">{feature.title}</h2>
             <p className="type-body mt-3 text-muted">{feature.description}</p>
           </article>
         ))}
       </div>
     </section>
+  );
+}
+
+function LightningIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinejoin="round"
+      className="size-6"
+      aria-hidden="true"
+    >
+      <path d="M13 2.5 4.5 13.5H11L10 21.5l8.5-11H12l1-8Z" />
+    </svg>
+  );
+}
+
+function ChessKnightIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="size-6"
+      aria-hidden="true"
+    >
+      <path d="M8 18c0-3 1.5-5 4-6.5L9.5 11 7 12.5 5.5 10.5l3.5-5 1-2.5 1.5 2c4 .5 6.5 4 6.5 8.5V18H8Z" />
+      <path d="M6 21h13" />
+      <circle cx="10.5" cy="8" r="0.5" fill="currentColor" />
+    </svg>
   );
 }

@@ -378,6 +378,42 @@
   }
 }
 
+/*
+ * Hero orbit (components/hero/hero-shield.tsx): two eased back-and-forth
+ * motions, the depth one a quarter turn (2s) behind the side-to-side one,
+ * trace an ellipse. z-index crosses the shield's (10) at the ellipse's
+ * sides, so items pass behind it on the far side. Delay with --orbit-phase;
+ * inline so it resolves on each item rather than once on :root.
+ */
+@theme inline {
+  --animate-orbit-x: orbit-x 4s cubic-bezier(0.37, 0, 0.63, 1)
+    var(--orbit-phase, 0s) infinite alternate;
+  --animate-orbit-depth: orbit-depth 4s cubic-bezier(0.37, 0, 0.63, 1)
+    calc(var(--orbit-phase, 0s) - 2s) infinite alternate;
+
+  @keyframes orbit-x {
+    from {
+      transform: translateX(-200px);
+    }
+    to {
+      transform: translateX(200px);
+    }
+  }
+
+  @keyframes orbit-depth {
+    from {
+      transform: translateY(-36px) scale(0.75);
+      filter: brightness(0.55);
+      z-index: 0;
+    }
+    to {
+      transform: translateY(36px) scale(1.1);
+      filter: brightness(1);
+      z-index: 20;
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
