@@ -10,5 +10,9 @@ module.exports = {
       url: process.env.MONAD_TESTNET_RPC_URL || "https://testnet-rpc.monad.xyz",
       chainId: 10143,
     },
+    monadMainnet: {
+      url: process.env.MONAD_MAINNET_RPC_URL || "https://rpc.monad.xyz",
+      chainId: 143,
+    },
   },
 };
