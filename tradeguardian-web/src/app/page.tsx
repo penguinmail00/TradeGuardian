@@ -141,7 +141,11 @@ function HeroBackdrop() {
  */
 function TradeStepGraph({ steps }: { steps: TradeStep[] }) {
   return (
-    <section aria-labelledby="trade-steps-heading" className="relative">
+    <section
+      id="how-it-works"
+      aria-labelledby="trade-steps-heading"
+      className="relative scroll-mt-4"
+    >
       <div className="mx-auto w-[calc(100%-60px)] max-w-[1140px]">
         <p className="type-eyebrow text-accent">How it works</p>
         <h2 id="trade-steps-heading" className="type-h2 mt-3 text-balance">

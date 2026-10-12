@@ -74,6 +74,14 @@
 }
 
 @layer base {
+  /* In-page links (like the header's "How it works") slide to their section.
+     Page navigations stay instant; see data-scroll-behavior in layout.tsx. */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
   body {
     background: var(--background);
     color: var(--foreground);

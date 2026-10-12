@@ -50,6 +50,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
+      // Smooth scrolling (globals.css) is for in-page links; this has Next.js
+      // switch it off during page navigations so those stay instant.
+      data-scroll-behavior="smooth"
       className={`${inter.variable} ${rigidSquare.variable} ${geistMono.variable} h-full`}
     >
       <body className="min-h-full flex flex-col">
