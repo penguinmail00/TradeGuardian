@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { HeroShield } from "@/components/hero/hero-shield";
+import { TradeDiagram } from "@/components/hero/trade-diagram";
 import { SiteFooter } from "@/components/site-shell/site-footer";
 import { SiteHeader } from "@/components/site-shell/site-header";
 import { CreateTradeLink } from "@/components/trades/create-trade-link";
@@ -94,7 +94,7 @@ function Hero() {
       <div className="relative mx-auto w-[calc(100%-60px)] max-w-[1140px] py-24 min-[1090px]:pt-[214px] min-[1090px]:pb-32">
         {/* Centered on the copy (the column's padding is 214px top, 128px
             bottom). Desktop only: below 1090px the copy takes the full width. */}
-        <HeroShield className="absolute top-[calc(50%+43px)] right-[100px] hidden -translate-y-1/2 min-[1090px]:block" />
+        <TradeDiagram className="absolute top-[calc(50%+43px)] right-0 hidden w-[440px] -translate-y-1/2 min-[1090px]:block" />
         <h1 className="type-hero max-w-[627px] text-balance">
           Trade with confidence.
         </h1>
