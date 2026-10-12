@@ -1,5 +1,5 @@
 import { getAddress, isAddress, type Address } from "viem";
-import { monadTestnet } from "wagmi/chains";
+import { monad } from "wagmi/chains";
 
 /** The parts of `EscrowFactory` in tradeguardian-contracts that the site uses. */
 export const escrowFactoryAbi = [
@@ -26,8 +26,8 @@ export const escrowFactoryAbi = [
   },
 ] as const;
 
-/** The factory is only deployed on Monad Testnet so far. */
-export const escrowFactoryChain = monadTestnet;
+/** The chain the site creates and reads trades on. */
+export const escrowFactoryChain = monad;
 
 const configuredAddress = process.env.NEXT_PUBLIC_ESCROW_FACTORY_ADDRESS;
 

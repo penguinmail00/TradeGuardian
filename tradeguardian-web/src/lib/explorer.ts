@@ -1,8 +1,8 @@
 import type { Address } from "viem";
 
-// Trades don't record their chain yet, and escrows are only deployed on
-// Monad Testnet so far, so every link goes to the testnet explorer.
-const explorerUrl = "https://testnet.monadscan.com";
+// Trades don't record their chain, and the site only uses Monad Mainnet, so
+// every link goes to the mainnet explorer.
+const explorerUrl = "https://monadscan.com";
 
 export const explorerName = "MonadScan";
 

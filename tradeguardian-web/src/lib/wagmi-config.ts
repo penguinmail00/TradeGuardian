@@ -30,7 +30,7 @@ const monad = {
 export const wagmiConfig = getDefaultConfig({
   appName: "TradeGuardian",
   projectId: walletConnectProjectId,
-  chains: [monadTestnet, monad],
+  chains: [monad, monadTestnet],
   ssr: true,
   // In a cookie, so `AccountChangeHandler` can read the stored wallet before
   // wagmi reconnects it.
