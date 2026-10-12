@@ -1,6 +1,4 @@
-import Image from "next/image";
 import Link from "next/link";
-import type { ReactNode } from "react";
 
 import { TradeDiagram } from "@/components/hero/trade-diagram";
 import { SiteFooter } from "@/components/site-shell/site-footer";
@@ -14,33 +12,20 @@ import {
 type Feature = {
   title: string;
   description: string;
-  icon: ReactNode;
 };
 
 const features: Feature[] = [
   {
     title: "Built on Monad",
     description: "Fast settlement and low gas fees for every trade.",
-    // Monad's mark in its own purple; brand marks shouldn't be recolored.
-    icon: (
-      <Image
-        src="/images/chains/monad.svg"
-        alt=""
-        width={33}
-        height={32}
-        className="size-6"
-      />
-    ),
   },
   {
     title: "Instant payout",
     description: "No more middlemen. Save your time and money.",
-    icon: <LightningIcon />,
   },
   {
     title: "Powered by game theory",
-    description: "Removes the incentive to scam, for buyers and sellers alike.",
-    icon: <ChessKnightIcon />,
+    description: "No incentive to scam. Fair play is the winning move.",
   },
 ];
 
@@ -100,7 +85,7 @@ function Hero() {
         </h1>
         <p className="type-body-lg mt-6 max-w-[535px] text-muted text-pretty">
           TradeGuardian protects every trade from start to finish, so you can
-          buy and sell without having to trust the other side.
+          buy and sell with anyone, anywhere.
         </p>
         <div
           id="get-started"
@@ -163,49 +148,11 @@ function FeatureGrid({ items }: { items: Feature[] }) {
       <div className="mx-auto grid w-[calc(100%-60px)] max-w-[1140px] gap-6 py-16 md:grid-cols-3 lg:py-24">
         {items.map((feature) => (
           <article key={feature.title} className="panel p-6 lg:p-8">
-            <div className="grid size-12 place-items-center rounded-md bg-tint-cyan text-accent">
-              {feature.icon}
-            </div>
-            <h2 className="type-h3 mt-5">{feature.title}</h2>
+            <h2 className="type-h3">{feature.title}</h2>
             <p className="type-body mt-3 text-muted">{feature.description}</p>
           </article>
         ))}
       </div>
     </section>
-  );
-}
-
-function LightningIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinejoin="round"
-      className="size-6"
-      aria-hidden="true"
-    >
-      <path d="M13 2.5 4.5 13.5H11L10 21.5l8.5-11H12l1-8Z" />
-    </svg>
-  );
-}
-
-function ChessKnightIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="size-6"
-      aria-hidden="true"
-    >
-      <path d="M8 18c0-3 1.5-5 4-6.5L9.5 11 7 12.5 5.5 10.5l3.5-5 1-2.5 1.5 2c4 .5 6.5 4 6.5 8.5V18H8Z" />
-      <path d="M6 21h13" />
-      <circle cx="10.5" cy="8" r="0.5" fill="currentColor" />
-    </svg>
   );
 }
