@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
@@ -53,8 +54,16 @@ export function SiteHeader() {
       <div className="flex h-(--header-height) items-center justify-between gap-4 px-4 min-[1090px]:grid min-[1090px]:grid-cols-[1fr_5fr] min-[1090px]:gap-2.5 min-[1090px]:px-[100px]">
         <Link
           href="/"
-          className="font-heading text-xl font-bold min-[1090px]:ml-5 min-[1090px]:justify-self-start"
+          className="flex items-center gap-2.5 font-heading text-xl font-bold min-[1090px]:ml-5 min-[1090px]:justify-self-start"
         >
+          <Image
+            src="/images/tradeguardian.svg"
+            alt=""
+            width={444}
+            height={501}
+            preload
+            className="h-7 w-auto min-[1090px]:h-8"
+          />
           TradeGuardian
         </Link>
         <div className="flex h-full items-center justify-end gap-2 min-[1090px]:gap-5">
