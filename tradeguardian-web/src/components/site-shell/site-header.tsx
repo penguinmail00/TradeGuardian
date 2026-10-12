@@ -17,7 +17,6 @@ type NavItem = NavLink & {
 };
 
 const navItems: NavItem[] = [
-  { label: "Features", href: "/#features" },
   { label: "How it works", href: "/how-it-works" },
   { label: "FAQ", href: "/faq" },
   { label: "Support", href: "/support" },

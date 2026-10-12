@@ -100,7 +100,7 @@ function Hero() {
         </h1>
         <p className="type-body-lg mt-6 max-w-[535px] text-muted text-pretty">
           TradeGuardian protects every trade from start to finish, so you can
-          buy and sell without worrying about getting burned.
+          buy and sell without having to trust the other side.
         </p>
         <div
           id="get-started"
