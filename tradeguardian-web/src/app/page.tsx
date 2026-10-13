@@ -1,4 +1,3 @@
-import Link from "next/link";
 
 import { TradeDiagram } from "@/components/hero/trade-diagram";
 import { SiteFooter } from "@/components/site-shell/site-footer";
@@ -94,12 +93,14 @@ function Hero() {
           <CreateTradeLink className="btn btn-lg btn-primary w-full sm:w-auto">
             Create a trade
           </CreateTradeLink>
-          <Link
-            href="#features"
+          <a
+            href="https://www.youtube.com/watch?v=TSNmm1syWkI"
+            target="_blank"
+            rel="noopener noreferrer"
             className="btn btn-lg btn-secondary w-full sm:w-auto"
           >
             Learn more
-          </Link>
+          </a>
         </div>
       </div>
     </section>
