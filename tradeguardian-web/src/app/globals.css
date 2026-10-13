@@ -409,6 +409,18 @@
   transform: none;
 }
 
+/* The Connect wallet button turns white on hover, like .btn-primary. */
+[data-rk] [data-testid="rk-connect-button"] {
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+
+  &:hover {
+    background: var(--foreground);
+    color: var(--on-accent);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
