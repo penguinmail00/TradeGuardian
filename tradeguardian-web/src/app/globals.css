@@ -401,6 +401,14 @@
   }
 }
 
+/*
+ * RainbowKit's connect button and account chip grow on hover; keep them still.
+ * Unlayered, and [data-rk] makes it outrank RainbowKit's own hover rule.
+ */
+[data-rk] .connect-wallet-button button:hover {
+  transform: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
