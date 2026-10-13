@@ -5,6 +5,7 @@ import { ChecklistItem } from "@/components/trades/checklist-item";
 import { EscrowActionButton } from "@/components/trades/escrow-action-button";
 import { TradeProgressStepper } from "@/components/trades/trade-progress-stepper";
 import { TradeTimestamp } from "@/components/trades/trade-time";
+import { UsdValue } from "@/components/trades/usd-value";
 import {
   canCancel,
   canConfirmReceipt,
@@ -100,7 +101,15 @@ function CreationDetails({
       </div>
       <div className="sm:contents">
         <dt className="text-muted">Item price</dt>
-        <dd>{formatEther(trade.itemPrice)} MON</dd>
+        <dd>
+          {formatEther(trade.itemPrice)} MON{" "}
+          <UsdValue
+            amount={Number(formatEther(trade.itemPrice))}
+            symbol="MON"
+            parenthesized
+            className="text-muted"
+          />
+        </dd>
       </div>
       <div className="sm:contents">
         <dt className="text-muted">Description</dt>

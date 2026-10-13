@@ -15,10 +15,10 @@ import {
 } from "viem";
 import { useAccount, usePublicClient, useWriteContract } from "wagmi";
 
+import { UsdValue } from "@/components/trades/usd-value";
 import { escrowFactoryAbi, escrowFactoryAddress, escrowFactoryChain } from "@/lib/escrow-factory";
 import { addPendingTradeSave, removePendingTradeSave } from "@/lib/pending-trade-saves";
 import { tradesQueryKey } from "@/lib/use-trades";
-import { useUsdPrice } from "@/lib/use-usd-price";
 import { wagmiConfig } from "@/lib/wagmi-config";
 
 import { itemDetailsLimits, itemDetailsSchema } from "./create-trade";
@@ -275,7 +275,12 @@ export function CreateTradeForm() {
                 required
                 className="min-w-0 flex-1 self-stretch bg-transparent px-3.5 outline-none placeholder:text-(--placeholder)"
               />
-              <UsdEstimate price={priceInput} symbol={priceChain.nativeCurrency.symbol} />
+              {/* As swap apps do, the amount's USD value sits inside the field. */}
+              <UsdValue
+                amount={parsePrice(priceInput) === undefined ? undefined : Number(priceInput.trim())}
+                symbol={priceChain.nativeCurrency.symbol}
+                className="type-small shrink-0 pr-3.5 text-(--placeholder)"
+              />
             </div>
             <TokenSymbol chain={priceChain} />
           </div>
@@ -311,27 +316,6 @@ function parsePrice(value: string) {
   } catch {
     return undefined;
   }
-}
-
-const usdFormat = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
-
-/**
- * What `price` of `symbol` is worth in USD at Coinbase's spot price, shown
- * inside the price field after the amount, as swap apps do. Shows nothing
- * until a valid price is typed, while the rate loads, or if it can't be
- * fetched.
- */
-function UsdEstimate({ price, symbol }: { price: string; symbol: string }) {
-  const amount = parsePrice(price) === undefined ? undefined : Number(price.trim());
-  const { data: usdPrice } = useUsdPrice(symbol, { enabled: amount !== undefined });
-  if (amount === undefined || usdPrice === undefined) return null;
-
-  const usd = amount * usdPrice;
-  return (
-    <span className="type-small shrink-0 pr-3.5 text-(--placeholder) tabular-nums">
-      {usd < 0.01 ? "<$0.01" : usdFormat.format(usd)}
-    </span>
-  );
 }
 
 type SiteChain = (typeof wagmiConfig.chains)[number];
