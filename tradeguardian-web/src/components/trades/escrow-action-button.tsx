@@ -2,10 +2,68 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useActionState, useId, useRef } from "react";
-import { BaseError, isAddressEqual, UserRejectedRequestError, type Address } from "viem";
+import {
+  BaseError,
+  formatEther,
+  isAddressEqual,
+  parseEther,
+  UserRejectedRequestError,
+  type Address,
+  type PublicClient,
+} from "viem";
 import { useAccount, usePublicClient, useWriteContract } from "wagmi";
 
 import { escrowAbi } from "@/lib/escrow-abi";
+
+/**
+ * Monad's default reserve balance: a transaction can't leave the sender's
+ * wallet with less than this, so a deposit needs it on top of the amount.
+ */
+const monadReserveBalance = parseEther("10");
+
+/** A deposit uses about 100k gas; Monad charges for the full gas limit. */
+const depositGasLimit = BigInt(150_000);
+
+/** Rounds wei up to the next 0.01 MON, so "add X MON" is always enough. */
+function roundUpToCent(wei: bigint) {
+  const cent = parseEther("0.01");
+  return ((wei + cent - BigInt(1)) / cent) * cent;
+}
+
+/**
+ * Why the wallet can't send a deposit of `value`, or undefined if it can (or
+ * the reason is something else, which the wallet then reports). Checked
+ * before sending, because wallets only say the transaction "is likely to
+ * fail".
+ */
+async function getDepositProblem(
+  publicClient: PublicClient,
+  escrow: Address,
+  functionName: "sellerDeposit" | "buyerDeposit",
+  value: bigint,
+  account: Address,
+): Promise<string | undefined> {
+  const [balance, gasPrice] = await Promise.all([
+    publicClient.getBalance({ address: account }),
+    publicClient.getGasPrice(),
+  ]);
+  const gasFee = gasPrice * depositGasLimit;
+  if (balance < value + gasFee) {
+    return `This deposit needs ${formatEther(value)} MON plus gas, but your wallet has ${formatEther(balance)} MON. Add at least ${formatEther(roundUpToCent(value + gasFee - balance))} MON to deposit.`;
+  }
+  try {
+    await publicClient.estimateContractGas({ address: escrow, abi: escrowAbi, functionName, value, account });
+  } catch (error) {
+    if (
+      error instanceof BaseError &&
+      error.walk((e) => e instanceof BaseError && e.details.includes("reserve balance violation"))
+    ) {
+      const missing = roundUpToCent(value + monadReserveBalance + gasFee - balance);
+      return `Monad requires keeping about ${formatEther(monadReserveBalance)} MON in your wallet after each transaction. Add at least ${formatEther(missing)} MON to deposit.`;
+    }
+  }
+  return undefined;
+}
 
 type ActionState =
   | { status: "idle" }
@@ -94,7 +152,12 @@ export function EscrowActionButton({
       }
 
       try {
-        const hash = await (functionName === "sellerDeposit" || functionName === "buyerDeposit"
+        const isDeposit = functionName === "sellerDeposit" || functionName === "buyerDeposit";
+        if (isDeposit && value !== undefined) {
+          const problem = await getDepositProblem(publicClient, escrow, functionName, value, connected);
+          if (problem) return fail(problem);
+        }
+        const hash = await (isDeposit
           ? writeContractAsync({ address: escrow, abi: escrowAbi, functionName, value })
           : writeContractAsync({ address: escrow, abi: escrowAbi, functionName }));
         const receipt = await publicClient.waitForTransactionReceipt({ hash });
