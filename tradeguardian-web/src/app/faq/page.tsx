@@ -31,12 +31,6 @@ const faqs: Faq[] = [
     ],
   },
   {
-    question: "What if the seller hands over the wrong item?",
-    answer: [
-      "The buyer won't confirm the trade, so the contract stays locked with both deposits inside. The seller would lose their deposit and gain nothing, so a rational seller has no reason to try it.",
-    ],
-  },
-  {
     question: "What happens if the buyer reports the wrong item?",
     answer: [
       "Both deposits stay locked in the contract. Nobody is paid, and nothing is returned yet.",
