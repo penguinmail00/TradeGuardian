@@ -36,6 +36,13 @@ const faqs: Faq[] = [
       "The buyer won't confirm the trade, so the contract stays locked with both deposits inside. The seller would lose their deposit and gain nothing, so a rational seller has no reason to try it.",
     ],
   },
+  {
+    question: "What happens if the buyer reports the wrong item?",
+    answer: [
+      "Both deposits stay locked in the contract. Nobody is paid, and nothing is returned yet.",
+      "To release the funds, the buyer and the seller each click Settle on the trade page. Usually the buyer returns the item, and the seller clicks Settle once they have it back. When the second person settles, the contract returns each deposit in full, with no fee.",
+    ],
+  },
 ];
 
 export const metadata: Metadata = {
